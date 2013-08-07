@@ -8,5 +8,4 @@ g++ *.cpp -std=c++11 -o bin
 
 Za koristenje drugih kompajlerima, ako nije po defaultu ukljuceno, treba dodati -std=c++1 kao parametar (flag)
 
-Screenshot:
-![Screenshot godellob-prover](/res/shot.png "Dokaz.")
+![Screenshot godellob-prover](/res/shot.png "Screenshot")

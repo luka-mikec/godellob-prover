@@ -4,3 +4,4 @@ gl.pro.user
 gl.pro
 build/
 build/*
+push.sh
