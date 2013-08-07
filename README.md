@@ -1,11 +1,14 @@
 godellob-prover
 ===============
 
-Automatski dokazivač formula za Gödel-Löb sustav. [Wiki](https://github.com/luka-mikec/godellob-prover/wiki)
+Automatic theorem prover for Gödel-Löb system. 
 
-Kompilacija pomocu g++:
-g++ *.cpp -std=c++11 -o bin
+Requires newer C++ compiler (written in C++11 standard).
 
-Za koristenje drugih kompajlerima, ako nije po defaultu ukljuceno, treba dodati -std=c++1 kao parametar (flag)
+Unixoids: download as zip, extract, run g++ *.cpp -std=c++11 -o bin 
+
+Windows: same as Unixoids, but might require downloading MinGW first (gcc for Windows) or any other C++11-compliant compiler (MSVC etc.)
+
+[More info in Croatian language](https://github.com/luka-mikec/godellob-prover/wiki)
 
 ![Screenshot godellob-prover](/res/shot.png "Screenshot")
