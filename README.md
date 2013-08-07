@@ -1,4 +1,4 @@
 godellob-prover
 ===============
 
-Automatski dokazivač formula za Gödel-Löb sustav (zasad radi izrada propozicionalnih semantičkih stabala)
+Automatski dokazivač formula za Gödel-Löb sustav. [Wiki](https://github.com/luka-mikec/godellob-prover/wiki)
