@@ -16,7 +16,24 @@ ostream& operator<<(ostream& out, modalna_formula *f)
                 out << " -> ";
                 if (f->b->tip <= 3) out << f->b;
                 else out << "(" << f->b << ")";
-
+                break;
+    case 5:     if (f->a->tip <= 3) out << f->a;
+                else out << "(" << f->a << ")";
+                out << " && ";
+                if (f->b->tip <= 3) out << f->b;
+                else out << "(" << f->b << ")";
+                break;
+    case 6:     if (f->a->tip <= 3) out << f->a;
+                else out << "(" << f->a << ")";
+                out << " || ";
+                if (f->b->tip <= 3) out << f->b;
+                else out << "(" << f->b << ")";
+                break;
+    case 7:     if (f->a->tip <= 3) out << f->a;
+                else out << "(" << f->a << ")";
+                out << " <-> ";
+                if (f->b->tip <= 3) out << f->b;
+                else out << "(" << f->b << ")";
                 break;
     }
 }

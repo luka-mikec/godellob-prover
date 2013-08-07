@@ -3,21 +3,32 @@
 
 #include <vector>
 #include <list>
+#include <algorithm>
 #include "modalna_formula.h"
 using namespace std;
 
 struct dummy_struct
 {
     dummy_struct *l = 0, *d = 0;
-    int data1 = 0,
-        data2 = 0,
-        data3 = 0;
+    int data1 = 0;
+    char data2 = 'x';
+    char data3 = 'x';
     dummy_struct() {}
     dummy_struct(int data) {data1 = data;}
     dummy_struct* cpy() { dummy_struct *n = new dummy_struct;
                           n->l = (l ? l->cpy() : 0);  n->d = (d ? d->cpy() : 0);
                           n->data1 = data1; n->data2 = data2; n->data3 = data3;
                           return n; }
+    modalna_formula* u_modalnu() {
+        modalna_formula *mf = new modalna_formula;
+        mf->tip = data1 + 3;
+        if (l) mf->a = l->u_modalnu();
+        else { mf->a = new modalna_formula; mf->a->tip = (data2 == 1 ? 0 : 1); mf->a->p = data2; }
+        if (d) mf->b = d->u_modalnu();
+        else { mf->b = new modalna_formula; mf->b->tip = (data3 == 1 ? 0 : 1); mf->b->p = data3; }
+        return mf;
+    }
+
     bool ekval(dummy_struct* drugi) {
         if (data1 == drugi->data1 && data2 == drugi->data2 && data3 == drugi->data3)
         {
@@ -36,11 +47,12 @@ struct dummy_struct
 };
 
 // efektivno generira sve particije multiskupa s card. = granauk, tipovaop različitih elemenata
-
 void generiraj_operatore(int tipovaop, int granauk, int trtip,
                          vector<vector<dummy_struct*> >& skupovi, vector<dummy_struct*> &trenutni_skup);
 
 void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> preostali, vector <dummy_struct*> &strukture);
+
+vector<modalna_formula*> generiraj_formule(int kompleksnost);
 
 
 

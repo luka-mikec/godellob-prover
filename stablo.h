@@ -9,6 +9,9 @@ using namespace std;
 struct stablo // svako stabalce, svoja grana je!
 {
     stablo* mother = 0;
+    // BEGIN GL
+    int razina = 0; // koliko duboko u stablu s obzirom na modalne svjetove
+    // END GL
     vector<modalna_formula*> formule_grane;
     vector<stablo*> stabla_grane;
 
@@ -61,6 +64,32 @@ struct stablo // svako stabalce, svoja grana je!
         return false;
     }
 
+    // GL BEGIN
+    bool kontrad_na_gore(modalna_formula *f, int raz)
+    {
+        if (!formule_grane.empty())
+        for (auto gr : formule_grane)
+        {
+            if (f->je_negacija(gr))
+                return true;
+        }
+        if (mother != 0 && mother->razina == raz)
+            return mother->kontrad_na_gore(f, raz);
+        return false;
+    }
+
+    void skupi_modalne(vector<modalna_formula* > &kolekcija, int raz)
+    {
+        if (!formule_grane.empty())
+        for (auto gr : formule_grane)
+            if (gr->tip == 2)
+                kolekcija.push_back(gr);
+        if (mother != 0)
+            if (mother->razina == raz)
+                mother->skupi_modalne(kolekcija, raz);
+    }
+    // GL END
+
     void rijesi_formulu(modalna_formula *f)
     {
         // formulu kod sebe rijesavamo samo ako nema djece
@@ -78,11 +107,19 @@ struct stablo // svako stabalce, svoja grana je!
             {
             case 0:     zatvorena = true; break;
             case 1:     zatvorena = zatvorena ||kontrad_na_gore(f); break; // ovo zatvorena || tu i ispod bi trebalo biti nepotrebno
-            case 2:     zatvorena = zatvorena ||kontrad_na_gore(f); break; // zasad ne postoji pravilo rastavljanja
+            case 2:     zatvorena = zatvorena ||kontrad_na_gore(f/*GL BEGIN*/, razina /*GL END*/);
+
+                break; // zasad ne postoji pravilo rastavljanja -> a nece ni postojat LOLolo
             case 3:     zatvorena = zatvorena ||kontrad_na_gore(f);
                         if (!zatvorena)
                         {
-                            if (f->a->tip == 3)
+                            // GL BEGIN
+                            if (f->a->tip == 2)
+                            {
+                                // zasad nista, na kraju rjesavanja cemo provjeriti ovaj tip
+                            }
+                            // GL END
+                            else if (f->a->tip == 3)
                             {
                                 dodaj_formulu(f->a->a);
                             }
@@ -127,6 +164,8 @@ struct stablo // svako stabalce, svoja grana je!
                 s->rijesi_svoje();
         }
 
+
+
         bool svezat = !stabla_grane.empty();
         if (!stabla_grane.empty())
         for (auto s : stabla_grane)
@@ -138,6 +177,52 @@ struct stablo // svako stabalce, svoja grana je!
             }
         }
         zatvorena = zatvorena || svezat;
+
+        // GL BEGIN
+        if (!zatvorena)
+        {
+            vector<modalna_formula* > negacije_modalnih;
+            for (auto i = formule_grane.begin(); i != formule_grane.end(); ++i)
+                if ((*i)->tip == 3)
+                    if ((*i)->a->tip == 2)
+                        negacije_modalnih.push_back(*i);
+
+            vector<modalna_formula* > kolekcija;
+            skupi_modalne(kolekcija, razina);
+
+            if (negacije_modalnih.empty()) return;
+
+            int index = stabla_grane.size();
+
+            for (auto *mf : negacije_modalnih)
+            {
+                cout << "otvaram za " << mf << endl;
+                stablo * novo = new stablo;
+                modalna_formula * negacija = new modalna_formula;
+                negacija->tip = 3;
+                negacija->a = mf->a->a;
+                novo->dodaj_formulu(negacija);
+                novo->dodaj_formulu(mf->a);
+                if (!kolekcija.empty())
+                for (modalna_formula* f: kolekcija)
+                {
+                    novo->dodaj_formulu(f);
+                    novo->dodaj_formulu(f->a);
+                }
+                novo->razina = razina + 1;
+                novo->mother = this;
+                stabla_grane.push_back(novo);
+                novo->rijesi_svoje();
+            }
+
+            svezat = true;
+            for (int i = index; i < stabla_grane.size(); ++i)
+            {
+                if (stabla_grane[i]->zatvorena == false) svezat = false;
+            }
+            zatvorena = zatvorena || svezat;
+        }
+        // GL END
     }
 
 

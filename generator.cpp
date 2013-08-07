@@ -1,6 +1,5 @@
 #include "generator.h"
 
-
 vector<dummy_struct*> kopiraj_skup_op(vector<dummy_struct*> &skup)
 {
     vector<dummy_struct*> novi;
@@ -104,6 +103,66 @@ void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> p
 
 
 
+modalna_formula* bind(dummy_struct* sintakticka_struktura, string razmjestaj_varijabli)
+{
+    vector<dummy_struct*> polje;
+    int crawler = 0;
+    pokupi(sintakticka_struktura, polje);
+    for (auto& str : polje)
+    {
+        if (!str->l) str-> data2 = razmjestaj_varijabli[crawler++];
+        if (!str->d) str-> data3 = razmjestaj_varijabli[crawler++];
+    }
+    return sintakticka_struktura->u_modalnu();
+}
+
+vector<modalna_formula*> generiraj_formule(int kompleksnost)
+{
+    vector<modalna_formula*> rezultat;
+
+    vector<dummy_struct*> trs;
+    vector<vector<dummy_struct*>> skupovi_operatora;
+    generiraj_operatore(4, kompleksnost, 0, skupovi_operatora, trs);
+
+    vector<dummy_struct*> trs_vars;
+    vector<vector<dummy_struct*>> skupovi_varijabli;
+    generiraj_operatore(/*kompleksnost +*/ 2, kompleksnost + 1, 0, skupovi_varijabli, trs_vars); // kompl + 2 zbog _|_
+    vector<string> skupovi_varijabli_sredeno;
+    string abeceda = "0pqsrabcdefghijklmnotuvxyzw0123456789";
+    for (auto skup : skupovi_varijabli)
+    {
+        skupovi_varijabli_sredeno.push_back("");
+        for (auto opr : skup)
+            skupovi_varijabli_sredeno.back() += abeceda[opr->data1];
+    }
+
+    for (auto struktura_operatora : skupovi_operatora)
+    {
+        vector<dummy_struct*> ugr;
+        vector<dummy_struct*> preost = struktura_operatora;
+        vector<dummy_struct*> strukture;
+        generiraj_strukture(ugr, preost, strukture);
+        for (auto sintakticka_struktura : strukture)
+        {
+            for (auto odabir_varijabli : skupovi_varijabli_sredeno)
+            {
+                do {
+                    rezultat.push_back(bind(sintakticka_struktura, odabir_varijabli));
+                } while (next_permutation(odabir_varijabli.begin(), odabir_varijabli.end()));
+            }
+
+        }
+    }
+
+    return rezultat;
+
+    // konacno, gradimo formule: za svaku strukturu, svaka perm. varijabli
+
+
+
+
+
+}
 
 
 
