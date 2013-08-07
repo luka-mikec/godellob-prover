@@ -74,11 +74,31 @@ int main()
        // cout << item << "\t";
     }*/
 
+    cout << "> help za pomoc\n";
+
     while (1)
     {
         cout << "? ";
         modalna_formula *f = new modalna_formula;
-        f->feed(cin);
+        string ulaz;
+        getline(cin, ulaz);
+            if (ulaz.length() >= 4)
+                if (ulaz.substr(0, 4) == "help")
+    {
+            cout << "Formule se unose prefiksno, dakle umjesto a > b, treba > a b.\n\n" \
+                    "Dostupni operatori: # kontradikcija (bez arg.), ~ negacija, B bew/dokazivo, \n" \
+                    "& konjunkcija, > kondicional, + disjunkcija, = bikondicional. \n\n" \
+                    "Sve ostalo duljine 1 znaka osim praznina je propozicijsko slovo.\n\n" \
+                    "Primjeri formula [za provjeru valjanosti dodati ~ ispred svake]: \n\t";
+            modalna_formula* tmp= new modalna_formula;
+            string ulaz = "=B#B~B~p";
+            stringstream tmp2; tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << "\n\t";
+            ulaz = "=B=p~BpB=p~B#";
+            tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << endl;
+            continue;
+}
+         stringstream Ulaz; Ulaz << ulaz;
+        f->feed(Ulaz);
         cout << "Ulaz: " << f << endl ;
         f->flatten();
         /*cin.ignore();
@@ -90,9 +110,9 @@ int main()
 
         s.izgradi_za(f);
 
-        cout << "Ulaz: " << f << endl << "Stablo:\n" << s << endl;
+        cout << "U minimalnom jeziku: " << f << endl << "Stablo:\n" << s << endl;
 
-        cin.ignore();
+        //cin.ignore();
 
     }
 

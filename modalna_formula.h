@@ -154,6 +154,7 @@ struct modalna_formula
                     dvojnik->b = b->kopija();
                     break;
         }
+        return dvojnik;
     }
 
 

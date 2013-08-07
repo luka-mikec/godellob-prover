@@ -5,7 +5,7 @@ string motherlevel(const stablo &s)
     if (s.mother == 0)
         return "";
     else
-        return motherlevel(*s.mother) + "\t";
+        return motherlevel(*s.mother) + "\t" + (s.mother->razina != s.razina ? "|" : "");
 }
 
 ostream& operator<<(ostream& out, const stablo &s)

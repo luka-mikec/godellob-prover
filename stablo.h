@@ -44,10 +44,12 @@ struct stablo // svako stabalce, svoja grana je!
             novo->mother = this;
             novo->formule_grane.push_back(l->kopija());
             stabla_grane.push_back(novo);
+            novo->razina = razina;
             novo = new stablo;
             novo->mother = this;
             novo->formule_grane.push_back(d->kopija());
             stabla_grane.push_back(novo);
+            novo->razina = razina;
         }
     }
 
@@ -89,6 +91,8 @@ struct stablo // svako stabalce, svoja grana je!
                 mother->skupi_modalne(kolekcija, raz);
     }
     // GL END
+
+
 
     void rijesi_formulu(modalna_formula *f)
     {
@@ -149,6 +153,43 @@ struct stablo // svako stabalce, svoja grana je!
         }
     }
 
+    // GL BEGIN
+    bool otvori_prozor(modalna_formula* mf, vector<modalna_formula*> &kolekcija)
+    {
+
+        bool sve_zat = true;
+        if (!stabla_grane.empty())
+        {
+            for (auto s : stabla_grane)
+            {
+                if (!zatvorena && s->razina == razina)
+                    sve_zat = sve_zat && s->otvori_prozor(mf, kolekcija);
+            }
+            return sve_zat;
+        }
+
+        cout << "otvaram za " << mf << endl;
+        stablo * novo = new stablo;
+        modalna_formula * negacija = new modalna_formula;
+        negacija->tip = 3;
+        negacija->a = mf->a->a;
+        novo->dodaj_formulu(negacija);
+        novo->dodaj_formulu(mf->a);
+        if (!kolekcija.empty())
+        for (modalna_formula* f: kolekcija)
+        {
+            novo->dodaj_formulu(f);
+            novo->dodaj_formulu(f->a);
+        }
+        novo->razina = razina + 1;
+        novo->mother = this;
+        stabla_grane.push_back(novo);
+        novo->rijesi_svoje();
+        return novo->zatvorena;
+    }
+
+    // GL END
+
     void rijesi_svoje()
     {
         for (int i = 0; i < formule_grane.size(); ++i)
@@ -178,7 +219,8 @@ struct stablo // svako stabalce, svoja grana je!
         }
         zatvorena = zatvorena || svezat;
 
-        // GL BEGIN
+        // GL BEGIN // TODO: prebaciti izvršavanje u djecu, jer može biti da imamo otvorene grane u djeci
+                    //       i ktome da u svakoj grani posebno postoji protuslovlje, ali ne u meni [mozda i nije al za svaki sl]
         if (!zatvorena)
         {
             vector<modalna_formula* > negacije_modalnih;
@@ -196,23 +238,7 @@ struct stablo // svako stabalce, svoja grana je!
 
             for (auto *mf : negacije_modalnih)
             {
-                cout << "otvaram za " << mf << endl;
-                stablo * novo = new stablo;
-                modalna_formula * negacija = new modalna_formula;
-                negacija->tip = 3;
-                negacija->a = mf->a->a;
-                novo->dodaj_formulu(negacija);
-                novo->dodaj_formulu(mf->a);
-                if (!kolekcija.empty())
-                for (modalna_formula* f: kolekcija)
-                {
-                    novo->dodaj_formulu(f);
-                    novo->dodaj_formulu(f->a);
-                }
-                novo->razina = razina + 1;
-                novo->mother = this;
-                stabla_grane.push_back(novo);
-                novo->rijesi_svoje();
+                otvori_prozor(mf, kolekcija);
             }
 
             svezat = true;
