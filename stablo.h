@@ -50,11 +50,14 @@ struct stablo // svako stabalce, svoja grana je!
             novo->formule_grane.push_back(l->kopija());
             stabla_grane.push_back(novo);
             novo->razina = razina;
+            // da smanjimo cijelo stablo, odmah provjera je li zatvoreno
+            novo->zatvorena = kontrad_na_gore(l, razina);
             novo = new stablo;
             novo->mother = this;
             novo->formule_grane.push_back(d->kopija());
             stabla_grane.push_back(novo);
             novo->razina = razina;
+            novo->zatvorena = kontrad_na_gore(d, razina);
         }
     }
 
@@ -73,7 +76,7 @@ struct stablo // svako stabalce, svoja grana je!
         return false;
     }
 
-    void skupi_modalne(vector<modalna_formula* > &kolekcija, int raz)
+    void skupi_modalne(vector<modalna_formula* > &kolekcija, int raz, bool gore = true)
     {
         if (!formule_grane.empty())
         for (auto gr : formule_grane)
@@ -91,8 +94,8 @@ struct stablo // svako stabalce, svoja grana je!
                 if (!sadrzi)
                     kolekcija.push_back(gr);
             }
-        if (mother != 0)
-            if (mother->razina == raz)
+        if (mother != 0 && gore)
+            if (mother->razina == raz) // ne bi bila greska, ali da ne bloata nepotrebno
                 mother->skupi_modalne(kolekcija, raz);
     }
     // GL END
@@ -101,13 +104,13 @@ struct stablo // svako stabalce, svoja grana je!
 
     void rijesi_formulu(modalna_formula *f)
     {
-        // formulu kod sebe rijesavamo samo ako nema djece
+        // formulu kod sebe sredimo samo ako nema djece
         if (stabla_grane.size() > 0)
         {
             for (auto gr : stabla_grane)
             {
                 if (!gr->zatvorena)
-                gr->rijesi_formulu(f);
+                    gr->rijesi_formulu(f);
             }
         }
         else
@@ -139,6 +142,7 @@ struct stablo // svako stabalce, svoja grana je!
                                 b->tip = 3;
                                 b->a = f->a->b->kopija();
                                 dodaj_formulu(b);
+                                delete b;
                             }
                         }
                         break;
@@ -151,11 +155,27 @@ struct stablo // svako stabalce, svoja grana je!
                             a->a = f->a->kopija();
 
                             dodaj_stablo(a, b);
+                            delete a;
                         }
                         break;
             }
 
         }
+    }
+
+    vector<modalna_formula*> kopiraj_skup_op(vector<modalna_formula*> &skup)
+    {
+        vector<modalna_formula*> novi;
+        for (int i = 0; i < skup.size(); ++i)
+            novi.push_back(skup[i]->kopija());
+        return novi;
+    }
+
+    template <class T>
+    void vec_del(vector<T>v )
+    {
+        for (typename vector<T>::iterator i = v.begin(); i != v.end(); ++i)
+            delete *i;
     }
 
     // GL BEGIN
@@ -174,10 +194,13 @@ struct stablo // svako stabalce, svoja grana je!
         {
             for (auto s : stabla_grane)
             {
-                if (!zatvorena && s->razina == razina)
+                if (!zatvorena && !s->zatvorena && s->razina == razina)
                 {
-                    bool val = s->otvori_prozor(mf, kolekcija);
+                    auto kop = kopiraj_skup_op(kolekcija);
+                    s->skupi_modalne(kop, razina, false);
+                    bool val = s->otvori_prozor(mf, kop);
                     sve_zat = sve_zat && val;
+                    //vec_del(kop);
                 }
             }
             return sve_zat;
@@ -190,6 +213,8 @@ struct stablo // svako stabalce, svoja grana je!
         negacija->a = mf->a->a;
         novo->dodaj_formulu(negacija);
         novo->dodaj_formulu(mf->a);
+        negacija->a = 0; delete negacija;
+
         if (!kolekcija.empty())
         for (modalna_formula* f: kolekcija)
         {
@@ -213,6 +238,22 @@ struct stablo // svako stabalce, svoja grana je!
 
     // GL END
 
+    bool jesu_li_mi_deca_sva_takva_da_su_zatvorena()
+    {
+        bool svezat = !stabla_grane.empty();
+        bool force_zatv = false;
+        for (int i = 0; i < stabla_grane.size(); ++i)
+        {
+            if (!stabla_grane[i]->zatvorena)
+                    //|| stabla_grane[i]->razina != razina // eksperimentalno
+               if (!stabla_grane[i]->jesu_li_mi_deca_sva_takva_da_su_zatvorena())
+                    svezat = false;
+            if (stabla_grane[i]->zatvorena && stabla_grane[i]->razina != razina)
+                force_zatv = true;
+        }
+        return zatvorena || svezat || force_zatv;
+    }
+
     void rijesi_svoje()
     {
         for (int i = 0; i < formule_grane.size(); ++i)
@@ -224,8 +265,14 @@ struct stablo // svako stabalce, svoja grana je!
         if (!stabla_grane.empty())
         for (auto s : stabla_grane)
         {
+            /*if (s->formule_grane.front()->tip == 3)
+                if (s->formule_grane.front()->a->tip == 3)
+                    if (s->formule_grane.front()->a->a->tip == 0)
+                        cout << "breakmeup";*/
             if (!zatvorena)
                 s->rijesi_svoje();
+            else
+                cout << "%";
         }
 
 
@@ -244,7 +291,8 @@ struct stablo // svako stabalce, svoja grana je!
 
         // GL BEGIN // TODO: prebaciti izvršavanje u djecu, jer može biti da imamo otvorene grane u djeci
                     //       i ktome da u svakoj grani posebno postoji protuslovlje, ali ne u meni [mozda i nije al za svaki sl]
-        if (!zatvorena)
+        if (!zatvorena) // los pristup: trebala bi posebna f.
+                        // koja bi rekurzivno provjeravala. bloated loli
         {
             vector<modalna_formula* > negacije_modalnih;
             for (auto i = formule_grane.begin(); i != formule_grane.end(); ++i)
@@ -255,23 +303,20 @@ struct stablo // svako stabalce, svoja grana je!
             vector<modalna_formula* > kolekcija;
             skupi_modalne(kolekcija, razina);
 
-            if (negacije_modalnih.empty()) return;
-
             //int index = stabla_grane.size();
-
+            if (!negacije_modalnih.empty())
             for (auto *mf : negacije_modalnih)
             {
                 otvori_prozor(mf, kolekcija);
             }
 
-            svezat = true;
-            for (int i = 0; i < stabla_grane.size(); ++i)
+
+            //zatvorena = zatvorena || svezat || force_zatv;
+            zatvorena = zatvorena || jesu_li_mi_deca_sva_takva_da_su_zatvorena();
+            if (!zatvorena)
             {
-                if (stabla_grane[i]->zatvorena == false
-                        //|| stabla_grane[i]->razina != razina // eksperimentalno
-                        ) svezat = false;
+                //cout << "BREAKMEUP";
             }
-            zatvorena = zatvorena || svezat;
         }
         // GL END
     }

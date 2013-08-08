@@ -101,12 +101,19 @@ int main()
 
     cout << "> help za pomoc\n";
 
+    bool show = true;
     while (1)
     {
         cout << "? ";
         modalna_formula *f = new modalna_formula;
-        string ulaz;
-        getline(cin, ulaz);
+        string ulaz = "";
+        if (!getline(cin, ulaz))
+        {
+            break;
+        }
+        if (ulaz.size() == 0) break;
+
+
         if (ulaz.length() >= 4)
             if (ulaz.substr(0, 4) == "help")
             {
@@ -123,10 +130,23 @@ int main()
                 continue;
             }
             else if (ulaz.substr(0, 4) == "exit") exit(0);
+            else if (ulaz.substr(0, 4) == "show") {show = true; continue;}
+            else if (ulaz.substr(0, 4) == "hide") {show = false; continue;}
 
-         stringstream Ulaz; Ulaz << ulaz;
+         stringstream Ulaz;
+         /*auto arr = ulaz.c_str(); char *p = (char*)arr;
+         string jaojao;
+         while (*p != '\0')
+         {
+             cout << *p << ":" << int(*p) << "  "; cout.flush();
+             jaojao += *p;
+             ++p;
+
+         }
+*/
+         Ulaz << ulaz; //jaojao.c_str();
         f->feed(Ulaz);
-        cout << "Ulaz: " << f << endl ;
+        cout << "Ulaz: " << f;
         f->flatten();
         /*cin.ignore();
         modalna_formula *g = new modalna_formula;
@@ -137,7 +157,13 @@ int main()
 
         s.izgradi_za(f);
 
-        cout << "U minimalnom jeziku: " << f << endl << "Stablo:\n" << s << endl;
+
+        if (show)
+        {
+            cout << endl << "U minimalnom jeziku: " << f << endl << "Stablo:\n";
+            cout << s << endl;
+        }
+        else cout << "\t |-> " << (s.zatvorena ? "X" : "O") << endl;
 
         //cin.ignore();
 
