@@ -19,6 +19,11 @@ struct stablo // svako stabalce, svoja grana je!
 
     void dodaj_formulu(modalna_formula *f)
     {
+     /*   if (f->tip == 2)
+            if (f->a->tip == 1)
+            {
+                cout << "breakme";
+            }*/
         if (stabla_grane.size() > 0)
         {
             for (auto gr : stabla_grane)
@@ -53,21 +58,9 @@ struct stablo // svako stabalce, svoja grana je!
         }
     }
 
-    bool kontrad_na_gore(modalna_formula *f)
-    {
-        if (!formule_grane.empty())
-        for (auto gr : formule_grane)
-        {
-            if (f->je_negacija(gr))
-                return true;
-        }
-        if (mother != 0)
-            return mother->kontrad_na_gore(f);
-        return false;
-    }
 
     // GL BEGIN
-    bool kontrad_na_gore(modalna_formula *f, int raz)
+    bool kontrad_na_gore(modalna_formula *f, int raz /*= 0*/)
     {
         if (!formule_grane.empty())
         for (auto gr : formule_grane)
@@ -85,7 +78,19 @@ struct stablo // svako stabalce, svoja grana je!
         if (!formule_grane.empty())
         for (auto gr : formule_grane)
             if (gr->tip == 2)
-                kolekcija.push_back(gr);
+            {
+                bool sadrzi = false;
+                if (kolekcija.size())
+                for (auto ff : kolekcija)
+                {
+                    if (gr->je_jednaka(ff))
+                    {
+                        sadrzi = true; break;
+                    }
+                }
+                if (!sadrzi)
+                    kolekcija.push_back(gr);
+            }
         if (mother != 0)
             if (mother->razina == raz)
                 mother->skupi_modalne(kolekcija, raz);
@@ -110,11 +115,11 @@ struct stablo // svako stabalce, svoja grana je!
             switch (f->tip)
             {
             case 0:     zatvorena = true; break;
-            case 1:     zatvorena = zatvorena ||kontrad_na_gore(f); break; // ovo zatvorena || tu i ispod bi trebalo biti nepotrebno
+            case 1:     zatvorena = zatvorena ||kontrad_na_gore(f, razina); break; // ovo zatvorena || tu i ispod bi trebalo biti nepotrebno
             case 2:     zatvorena = zatvorena ||kontrad_na_gore(f/*GL BEGIN*/, razina /*GL END*/);
 
                 break; // zasad ne postoji pravilo rastavljanja -> a nece ni postojat LOLolo
-            case 3:     zatvorena = zatvorena ||kontrad_na_gore(f);
+            case 3:     zatvorena = zatvorena ||kontrad_na_gore(f, razina);
                         if (!zatvorena)
                         {
                             // GL BEGIN
@@ -138,7 +143,7 @@ struct stablo // svako stabalce, svoja grana je!
                         }
                         break;
 
-            case 4:     zatvorena = zatvorena || kontrad_na_gore(f);
+            case 4:     zatvorena = zatvorena || kontrad_na_gore(f, razina);
                         if (!zatvorena)
                         {
                             modalna_formula *a = new modalna_formula, *b = f->b->kopija();
@@ -156,6 +161,13 @@ struct stablo // svako stabalce, svoja grana je!
     // GL BEGIN
     bool otvori_prozor(modalna_formula* mf, vector<modalna_formula*> &kolekcija)
     {
+        /*if (formule_grane.size())
+                if (formule_grane.front()->p == 'p')
+        {
+            cout << "aaaa";
+          string breakmebabe;
+
+        }*/
 
         bool sve_zat = true;
         if (!stabla_grane.empty())
@@ -163,12 +175,15 @@ struct stablo // svako stabalce, svoja grana je!
             for (auto s : stabla_grane)
             {
                 if (!zatvorena && s->razina == razina)
-                    sve_zat = sve_zat && s->otvori_prozor(mf, kolekcija);
+                {
+                    bool val = s->otvori_prozor(mf, kolekcija);
+                    sve_zat = sve_zat && val;
+                }
             }
             return sve_zat;
         }
 
-        cout << "otvaram za " << mf << endl;
+        //cout << "otvaram za " << mf << endl;
         stablo * novo = new stablo;
         modalna_formula * negacija = new modalna_formula;
         negacija->tip = 3;
@@ -178,8 +193,16 @@ struct stablo // svako stabalce, svoja grana je!
         if (!kolekcija.empty())
         for (modalna_formula* f: kolekcija)
         {
-            novo->dodaj_formulu(f);
-            novo->dodaj_formulu(f->a);
+            bool prva = false, druga = false;
+            for (auto tr : novo->formule_grane)
+            {
+                if (tr->je_jednaka(f))
+                    prva = true;
+                if (tr->je_jednaka(f->a))
+                    druga = true;
+            }
+            if (!prva) novo->dodaj_formulu(f);
+            if (!druga) novo->dodaj_formulu(f->a);
         }
         novo->razina = razina + 1;
         novo->mother = this;
@@ -234,7 +257,7 @@ struct stablo // svako stabalce, svoja grana je!
 
             if (negacije_modalnih.empty()) return;
 
-            int index = stabla_grane.size();
+            //int index = stabla_grane.size();
 
             for (auto *mf : negacije_modalnih)
             {
@@ -242,9 +265,11 @@ struct stablo // svako stabalce, svoja grana je!
             }
 
             svezat = true;
-            for (int i = index; i < stabla_grane.size(); ++i)
+            for (int i = 0; i < stabla_grane.size(); ++i)
             {
-                if (stabla_grane[i]->zatvorena == false) svezat = false;
+                if (stabla_grane[i]->zatvorena == false
+                        //|| stabla_grane[i]->razina != razina // eksperimentalno
+                        ) svezat = false;
             }
             zatvorena = zatvorena || svezat;
         }
@@ -257,6 +282,14 @@ struct stablo // svako stabalce, svoja grana je!
         formule_grane.clear();
         dodaj_formulu(f);
         rijesi_svoje();
+    }
+
+    ~stablo()
+    {
+        for (auto mf : formule_grane)
+            delete mf;
+        for (auto mf : stabla_grane)
+            delete mf;
     }
 
     friend ostream& operator<<(ostream& out, const stablo &s);

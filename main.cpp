@@ -27,9 +27,9 @@ void rek_ispis(dummy_struct* r, string pref, bool l = true)
 int main()
 {
     string test = "x>y";
-    /*vector<dummy_struct*> trs;
+   /* vector<dummy_struct*> trs;
     vector<vector<dummy_struct*>> skupovi;
-    generiraj_operatore(3, 3, 0, skupovi, trs);
+    generiraj_operatore(2, 5, 0, skupovi, trs);
     for (auto skup : skupovi)
     {
         for (auto opr : skup)
@@ -49,30 +49,55 @@ int main()
         rek_ispis(str, "");
     }
 
-    vector<modalna_formula*> mfs = generiraj_formule(3);
-    vector<modalna_formula*> nevaljane;
-    modalna_formula* testna = new modalna_formula;
     stringstream ss; ss << "~>&p&ppp";
     testna->feed(ss);
-    for (modalna_formula* item : mfs)
+*/
+
+   vector<modalna_formula*> mfs;
+    cout << endl << "> (1/2) generiranje formula 0%"; cout.flush();
+    int max = 3;
+    for (int k = 1; k < max; ++k)
     {
+        auto res = generiraj_formule(k, 2);
+        mfs.insert(mfs.end(), res.begin(), res.end());
+        cout << "\r> (1/2) generiranje formula " << (100 * k / (max - 1)) << "%"; cout.flush();
+    }
+    cout << "\r> (1/2) generiranje formula: " << mfs.size() << endl;
+    cout << endl << "> ...";
+    vector<modalna_formula*> nevaljane;
+    vector<modalna_formula*> valjane;
+    int c = 0;
+    for (modalna_formula* item : mfs)
+    { ++c;
+        cout << "\r> (2/2) gradnja modela " << (100 * c / mfs.size()) << "% [" << c << "/" << mfs.size() << "]";
+
+        cout.flush();
         stablo s;
         modalna_formula* negacija = new modalna_formula;
         negacija->tip = 3;
-        negacija->a = item;
+        negacija->a = item->kopija();
         negacija->flatten();
-        s.izgradi_za(negacija);
-        if (s.zatvorena)
-            cout << item << endl;
-        else
-            nevaljane.push_back(item);
-    }
-    cout << endl << nevaljane.size() << "F, " << mfs.size() - nevaljane.size() << endl;
 
-    for (modalna_formula* item : nevaljane)
+        s.izgradi_za(negacija);
+
+        //if (c == 439) cout << endl << endl << s << endl << endl;
+        if (s.zatvorena)
+        {
+            valjane.push_back(item);
+         }
+        else
+        {
+            nevaljane.push_back(item);
+        }
+    }
+
+    for (modalna_formula* item : valjane)
     {
-       // cout << item << "\t";
-    }*/
+        cout << endl << item;
+    }
+
+    cout << endl << "> " << mfs.size() - nevaljane.size() << "T, " << nevaljane.size() << "F" << endl;
+
 
     cout << "> help za pomoc\n";
 
@@ -82,21 +107,23 @@ int main()
         modalna_formula *f = new modalna_formula;
         string ulaz;
         getline(cin, ulaz);
-            if (ulaz.length() >= 4)
-                if (ulaz.substr(0, 4) == "help")
-    {
-            cout << "Formule se unose prefiksno, dakle umjesto a > b, treba > a b.\n\n" \
-                    "Dostupni operatori: # kontradikcija (bez arg.), ~ negacija, B bew/dokazivo, \n" \
-                    "& konjunkcija, > kondicional, + disjunkcija, = bikondicional. \n\n" \
-                    "Sve ostalo duljine 1 znaka osim praznina je propozicijsko slovo.\n\n" \
-                    "Primjeri formula [za provjeru valjanosti dodati ~ ispred svake]: \n\t";
-            modalna_formula* tmp= new modalna_formula;
-            string ulaz = "=B#B~B~p";
-            stringstream tmp2; tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << "\n\t";
-            ulaz = "=B=p~BpB=p~B#";
-            tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << endl;
-            continue;
-}
+        if (ulaz.length() >= 4)
+            if (ulaz.substr(0, 4) == "help")
+            {
+                cout << "Formule se unose prefiksno, dakle umjesto a > b, treba > a b.\n\n" \
+                        "Dostupni operatori: # kontradikcija (bez arg.), ~ negacija, B bew/dokazivo, \n" \
+                        "& konjunkcija, > kondicional, + disjunkcija, = bikondicional. \n\n" \
+                        "Sve ostalo duljine 1 znaka osim praznina je propozicijsko slovo.\n\n" \
+                        "Primjeri formula [za provjeru valjanosti dodati ~ ispred svake]: \n\t";
+                modalna_formula* tmp= new modalna_formula;
+                string ulaz = "=B#B~B~p";
+                stringstream tmp2; tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << "\n\t";
+                ulaz = "=B=p~BpB=p~B#";
+                tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << endl;
+                continue;
+            }
+            else if (ulaz.substr(0, 4) == "exit") exit(0);
+
          stringstream Ulaz; Ulaz << ulaz;
         f->feed(Ulaz);
         cout << "Ulaz: " << f << endl ;

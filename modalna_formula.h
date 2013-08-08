@@ -58,7 +58,7 @@ struct modalna_formula
             a = pogtot;
         }
 
-        if (tip >= 2 && tip <= 4)
+        if (tip >= 2 && tip <= 4) // jer je sad sve svedeno na 2 do 4
             a->flatten();
         if (tip == 4)
             b->flatten();
@@ -131,11 +131,12 @@ struct modalna_formula
         modalna_formula *a = new modalna_formula;
         a->tip = 3;
         a->a = this;
-        if (f->je_jednaka(a)) return true;
+        if (f->je_jednaka(a)) {a->a = 0; delete a; return true;}
 
         a->a = f;
-        if (je_jednaka(a)) return true;
+        if (je_jednaka(a)) {a->a = 0; delete a; return true;}
 
+        a->a = 0; delete a;
         return false;
     }
 
@@ -160,7 +161,7 @@ struct modalna_formula
 
     ~modalna_formula()
     {
-        delete a; delete b;
+        if (a) delete a; if (b) delete b;
     }
 
     friend ostream& operator<<(ostream& out, modalna_formula *f);

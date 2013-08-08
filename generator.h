@@ -21,11 +21,13 @@ struct dummy_struct
                           return n; }
     modalna_formula* u_modalnu() {
         modalna_formula *mf = new modalna_formula;
-        mf->tip = data1 + 3;
+        mf->tip = data1 != 2 ? data1 + 3 : 7; // QUICKDIRTY
         if (l) mf->a = l->u_modalnu();
-        else { mf->a = new modalna_formula; mf->a->tip = (data2 == 1 ? 0 : 1); mf->a->p = data2; }
+        else { mf->a = new modalna_formula;
+            mf->a->tip = (data2 == '0' ? 0 : 1);
+            mf->a->p = data2; }
         if (d) mf->b = d->u_modalnu();
-        else { mf->b = new modalna_formula; mf->b->tip = (data3 == 1 ? 0 : 1); mf->b->p = data3; }
+        else { mf->b = new modalna_formula; mf->b->tip = (data3 == '0' ? 0 : 1); mf->b->p = data3; }
         return mf;
     }
 
@@ -52,7 +54,7 @@ void generiraj_operatore(int tipovaop, int granauk, int trtip,
 
 void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> preostali, vector <dummy_struct*> &strukture);
 
-vector<modalna_formula*> generiraj_formule(int kompleksnost);
+vector<modalna_formula*> generiraj_formule(int kompleksnost, int operatori);
 
 
 
