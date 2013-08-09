@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include "modalna_formula.h"
 using namespace std;
 
@@ -16,6 +17,30 @@ struct stablo // svako stabalce, svoja grana je!
     vector<stablo*> stabla_grane;
 
     bool zatvorena = false;
+
+    void memcrawl(vector<modalna_formula*> &cres)
+    {
+        //cres.insert(cres.end(), formule_grane.begin(), formule_grane.end());
+        for (modalna_formula* mf : formule_grane)
+            mf->pokupi_djecu(cres);
+        if (stabla_grane.size())
+            for (stablo* st : stabla_grane)
+                st->memcrawl(cres);
+    }
+
+    void memchk()
+    {
+        vector<modalna_formula*> cres;
+        stablo* glavica = this;
+        while (glavica->mother != 0) glavica = glavica->mother;
+        glavica->memcrawl(cres);
+        for (modalna_formula * mf : cres)
+        {
+            if (count(cres.begin(), cres.end(), mf) > 1)
+                   cout << "BREAKMEUP";
+        }
+
+    }
 
     void dodaj_formulu(modalna_formula *f)
     {
@@ -31,7 +56,10 @@ struct stablo // svako stabalce, svoja grana je!
                 gr->dodaj_formulu(f);
             }
         }
-        else formule_grane.push_back(f->kopija());
+        else {
+            formule_grane.push_back(f->kopija());
+           // memchk();
+        }
     }
 
     void dodaj_stablo(modalna_formula *l, modalna_formula *d)
@@ -48,6 +76,7 @@ struct stablo // svako stabalce, svoja grana je!
             stablo* novo = new stablo;
             novo->mother = this;
             novo->formule_grane.push_back(l->kopija());
+            //memchk();
             stabla_grane.push_back(novo);
             novo->razina = razina;
             // da smanjimo cijelo stablo, odmah provjera je li zatvoreno
@@ -55,6 +84,7 @@ struct stablo // svako stabalce, svoja grana je!
             novo = new stablo;
             novo->mother = this;
             novo->formule_grane.push_back(d->kopija());
+            //memchk();
             stabla_grane.push_back(novo);
             novo->razina = razina;
             novo->zatvorena = kontrad_na_gore(d, razina);
@@ -92,7 +122,7 @@ struct stablo // svako stabalce, svoja grana je!
                     }
                 }
                 if (!sadrzi)
-                    kolekcija.push_back(gr);
+                    kolekcija.push_back(gr->kopija()); // obrisaćese poslije
             }
         if (mother != 0 && gore)
             if (mother->razina == raz) // ne bi bila greska, ali da ne bloata nepotrebno
@@ -140,9 +170,10 @@ struct stablo // svako stabalce, svoja grana je!
                                 dodaj_formulu(f->a->a);
                                 modalna_formula *b = new modalna_formula;
                                 b->tip = 3;
-                                b->a = f->a->b->kopija();
+                                b->a = f->a->b; //  ->kopija()
                                 dodaj_formulu(b);
-                                delete b;
+                                b->otkud = 2;
+                                /*XXX*/ b->a = 0; delete b;
                             }
                         }
                         break;
@@ -150,12 +181,14 @@ struct stablo // svako stabalce, svoja grana je!
             case 4:     zatvorena = zatvorena || kontrad_na_gore(f, razina);
                         if (!zatvorena)
                         {
-                            modalna_formula *a = new modalna_formula, *b = f->b->kopija();
+                            modalna_formula *a = new modalna_formula, *b = f->b; // ->kopija();
                             a->tip = 3;
-                            a->a = f->a->kopija();
+                            a->a = f->a; //->kopija();
 
                             dodaj_stablo(a, b);
-                            delete a;
+                            a->otkud = 3;
+                            /*XXX*/ a->a = 0; delete a;
+
                         }
                         break;
             }
@@ -167,7 +200,10 @@ struct stablo // svako stabalce, svoja grana je!
     {
         vector<modalna_formula*> novi;
         for (int i = 0; i < skup.size(); ++i)
+        {
             novi.push_back(skup[i]->kopija());
+            novi.back()->otkud = 5;
+        }
         return novi;
     }
 
@@ -176,6 +212,7 @@ struct stablo // svako stabalce, svoja grana je!
     {
         for (typename vector<T>::iterator i = v.begin(); i != v.end(); ++i)
             delete *i;
+
     }
 
     // GL BEGIN
@@ -200,7 +237,7 @@ struct stablo // svako stabalce, svoja grana je!
                     s->skupi_modalne(kop, razina, false);
                     bool val = s->otvori_prozor(mf, kop);
                     sve_zat = sve_zat && val;
-                    //vec_del(kop);
+                    vec_del(kop);
                 }
             }
             return sve_zat;
@@ -210,10 +247,10 @@ struct stablo // svako stabalce, svoja grana je!
         stablo * novo = new stablo;
         modalna_formula * negacija = new modalna_formula;
         negacija->tip = 3;
-        negacija->a = mf->a->a;
+        negacija->a = mf->a->a; //->kopija();
         novo->dodaj_formulu(negacija);
         novo->dodaj_formulu(mf->a);
-        negacija->a = 0; delete negacija;
+        /*XXX*/ negacija->a = 0; negacija->otkud = 4; delete negacija;
 
         if (!kolekcija.empty())
         for (modalna_formula* f: kolekcija)
@@ -251,7 +288,8 @@ struct stablo // svako stabalce, svoja grana je!
             if (stabla_grane[i]->zatvorena && stabla_grane[i]->razina != razina)
                 force_zatv = true;
         }
-        return zatvorena || svezat || force_zatv;
+        zatvorena = zatvorena || svezat || force_zatv;
+        return zatvorena;
     }
 
     void rijesi_svoje()
@@ -310,6 +348,7 @@ struct stablo // svako stabalce, svoja grana je!
                 otvori_prozor(mf, kolekcija);
             }
 
+            vec_del(kolekcija);
 
             //zatvorena = zatvorena || svezat || force_zatv;
             zatvorena = zatvorena || jesu_li_mi_deca_sva_takva_da_su_zatvorena();
@@ -331,10 +370,17 @@ struct stablo // svako stabalce, svoja grana je!
 
     ~stablo()
     {
-        for (auto mf : formule_grane)
-            delete mf;
-        for (auto mf : stabla_grane)
-            delete mf;
+     for (auto mf : formule_grane)
+     {
+#ifdef dbgmsg
+         cout << "Brisem: " << mf << endl;
+         mf->show_mem("");
+         cout << endl;
+#endif
+        delete mf;
+     }
+     for (auto mf : stabla_grane)
+        delete mf;
     }
 
     friend ostream& operator<<(ostream& out, const stablo &s);

@@ -1,8 +1,12 @@
 #ifndef MODALNA_FORMULA_H
 #define MODALNA_FORMULA_H
 
+#include <sstream>
 #include <iostream>
-
+#include <vector>
+#include <algorithm>
+             //#define dbgmsg
+//#undef dbgmsg
 using namespace std;
 
 struct modalna_formula
@@ -12,6 +16,14 @@ struct modalna_formula
     modalna_formula *a = 0, *b = 0;
 
     char p = 'x';
+
+    static int instancirano, obrisano;
+    static vector<modalna_formula*> adresice;
+    modalna_formula()
+    {
+        ++instancirano;
+        //adresice.push_back(this);
+    }
 
     void flatten() // svodenje jezika na {~, ->} u Prop u {#}
     {
@@ -63,6 +75,14 @@ struct modalna_formula
         if (tip == 4)
             b->flatten();
     }
+
+    void pokupi_djecu(vector<modalna_formula*> &polje)
+    {
+        polje.push_back(this);
+        if (a) a->pokupi_djecu(polje);
+        if (b) b->pokupi_djecu(polje);
+    }
+
 
     void feed(istream& mother)
     {
@@ -126,9 +146,12 @@ struct modalna_formula
         return true;
     }
 
+    int otkud = 0;
+
     bool je_negacija(modalna_formula *f)
     {
         modalna_formula *a = new modalna_formula;
+        a->otkud = 1;
         a->tip = 3;
         a->a = this;
         if (f->je_jednaka(a)) {a->a = 0; delete a; return true;}
@@ -158,10 +181,34 @@ struct modalna_formula
         return dvojnik;
     }
 
+    void show_mem(string pref)
+    {
+#ifdef dbgmsg
+        cout << pref << (void*)this << endl;
+        cout.flush();
+        if (tip > 1) if (a) a->show_mem(pref + " ");
+        if (tip > 3) if (b) b->show_mem(pref + " ");
+        #endif
+    }
 
     ~modalna_formula()
     {
-        if (a) delete a; if (b) delete b;
+#ifdef dbgmsg
+        cout << "BR: " << (void*)this << " ~ " << this <<
+                (otkud ? " temp " : " ") << otkud << endl;
+        cout.flush();
+        if (!otkud)
+               cout << "break";
+#endif
+        ++obrisano;
+       /* auto it = std::find(adresice.begin(),adresice.end(),this);
+        if (it != adresice.end())
+          adresice.erase(it);*/
+
+        //stringstream quickie;
+        //quickie << this;
+        if (tip > 1 && a) {a->otkud = otkud; delete a;}
+        if (tip > 3 && b) {b->otkud = otkud; delete b;}
     }
 
     friend ostream& operator<<(ostream& out, modalna_formula *f);

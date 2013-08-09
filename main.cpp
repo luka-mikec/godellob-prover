@@ -24,35 +24,30 @@ void rek_ispis(dummy_struct* r, string pref, bool l = true)
     if (r->d) rek_ispis(r->d, pref + "\t", false);
 }
 
+
+bool show = true;
+
+
+void konstr(modalna_formula* f, string ulaz)
+{
+    stringstream Ulaz;
+   Ulaz << ulaz; //jaojao.c_str();
+   f->feed(Ulaz);
+   cout << "Ulaz: " << f;
+   f->flatten();
+   stablo s;
+   s.izgradi_za(f);
+   if (show)
+   {
+       cout << endl << "U minimalnom jeziku: " << f << endl << "Stablo:\n";
+       cout << s << endl;
+   }
+   else cout << "\t |-> " << (s.zatvorena ? "X" : "O") << endl;
+
+}
+
 int main()
 {
-    string test = "x>y";
-   /* vector<dummy_struct*> trs;
-    vector<vector<dummy_struct*>> skupovi;
-    generiraj_operatore(2, 5, 0, skupovi, trs);
-    for (auto skup : skupovi)
-    {
-        for (auto opr : skup)
-        {
-            cout << opr->data1;
-        }
-        cout << endl;
-    }
-
-    vector<dummy_struct*> ugr;
-
-    vector<dummy_struct*> preost = skupovi[5];
-    vector<dummy_struct*> strukture;
-    generiraj_strukture(ugr, preost, strukture);
-    for (auto str : strukture)
-    {
-        rek_ispis(str, "");
-    }
-
-    stringstream ss; ss << "~>&p&ppp";
-    testna->feed(ss);
-*/
-
    vector<modalna_formula*> mfs;
     cout << endl << "> (1/2) generiranje formula 0%"; cout.flush();
     int max = 3;
@@ -80,6 +75,7 @@ int main()
 
         s.izgradi_za(negacija);
 
+
         //if (c == 439) cout << endl << endl << s << endl << endl;
         if (s.zatvorena)
         {
@@ -91,17 +87,16 @@ int main()
         }
     }
 
-    for (modalna_formula* item : valjane)
-    {
-        cout << endl << item;
-    }
+    if (!valjane.empty())
+        for (modalna_formula* item : valjane)
+        {
+            cout << endl << item;
+        }
 
     cout << endl << "> " << mfs.size() - nevaljane.size() << "T, " << nevaljane.size() << "F" << endl;
 
 
     cout << "> help za pomoc\n";
-
-    bool show = true;
     while (1)
     {
         cout << "? ";
@@ -127,43 +122,24 @@ int main()
                 stringstream tmp2; tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << "\n\t";
                 ulaz = "=B=p~BpB=p~B#";
                 tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", upisati: " << ulaz << endl;
-                continue;
+                delete tmp;
             }
             else if (ulaz.substr(0, 4) == "exit") exit(0);
-            else if (ulaz.substr(0, 4) == "show") {show = true; continue;}
-            else if (ulaz.substr(0, 4) == "hide") {show = false; continue;}
-
-         stringstream Ulaz;
-         /*auto arr = ulaz.c_str(); char *p = (char*)arr;
-         string jaojao;
-         while (*p != '\0')
-         {
-             cout << *p << ":" << int(*p) << "  "; cout.flush();
-             jaojao += *p;
-             ++p;
-
-         }
-*/
-         Ulaz << ulaz; //jaojao.c_str();
-        f->feed(Ulaz);
-        cout << "Ulaz: " << f;
-        f->flatten();
-        /*cin.ignore();
-        modalna_formula *g = new modalna_formula;
-        g->feed(cin);
-        cout << f->je_negacija(g);*/
-
-        stablo s;
-
-        s.izgradi_za(f);
-
-
-        if (show)
+            else if (ulaz.substr(0, 4) == "show") {show = true; }
+            else if (ulaz.substr(0, 4) == "hide") {show = false; }
+            else if (ulaz.substr(0, 4) == "inst") {cout << modalna_formula::obrisano << "/" << modalna_formula::instancirano << endl; }
+            else konstr(f, ulaz);
+        else
         {
-            cout << endl << "U minimalnom jeziku: " << f << endl << "Stablo:\n";
-            cout << s << endl;
+            konstr(f, ulaz);
         }
-        else cout << "\t |-> " << (s.zatvorena ? "X" : "O") << endl;
+
+       /* for (auto el : modalna_formula::adresice)
+        {
+            cout << el << " : " << el->otkud << endl;
+        }*/
+
+        delete f;
 
         //cin.ignore();
 

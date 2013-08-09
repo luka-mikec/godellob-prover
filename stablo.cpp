@@ -22,4 +22,6 @@ ostream& operator<<(ostream& out, const stablo &s)
 
     out << motherlevel(s);
     out << (s.zatvorena ? "[X]" : "[ ]") << endl << endl;
+
+    return out;
 }

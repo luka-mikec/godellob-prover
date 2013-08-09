@@ -22,12 +22,6 @@ void pokupi(dummy_struct* root, vector<dummy_struct*> &polje)
     if (root->d) pokupi(root->d, polje);
 }
 
-void pokupi(modalna_formula* root, vector<modalna_formula*> &polje)
-{
-    polje.push_back(root);
-    if (root->a) pokupi(root->a, polje);
-    if (root->b) pokupi(root->b, polje);
-}
 
 
 void generiraj_operatore(int tipovaop, int granauk, int trtip,
@@ -200,7 +194,7 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
     for (modalna_formula* mf : rezultat)
     {
         vector<modalna_formula* > podformulice;
-        pokupi(mf, podformulice);
+        mf->pokupi_djecu(podformulice);
 
         int n = podformulice.size();
         int maxkod = int(pow((double)mdb + 1., (double)kompleksnost + kompleksnost + 1)+0.1);
