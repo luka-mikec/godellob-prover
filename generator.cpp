@@ -241,6 +241,7 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
         }
     }
 
+    vec_del(rezultat);
     return konacan_rezultat;
 
     // konacno, gradimo formule: za svaku strukturu, svaka perm. varijabli

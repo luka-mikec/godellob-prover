@@ -62,9 +62,12 @@ int main()
     vector<modalna_formula*> nevaljane;
     vector<modalna_formula*> valjane;
     int c = 0;
+    int step = mfs.size() / 2500;
+    if (!step) step = 1;
     for (modalna_formula* item : mfs)
     { ++c;
-        cout << "\r> (2/2) gradnja modela " << (100 * c / mfs.size()) << "% [" << c << "/" << mfs.size() << "]";
+        if (c % step == 0)
+            cout << "\r> (2/2) gradnja modela " << (100 * c / mfs.size()) << "% [" << c << "/" << mfs.size() << "]";
 
         cout.flush();
         stablo s;
@@ -85,15 +88,24 @@ int main()
         {
             nevaljane.push_back(item);
         }
+        delete negacija;
     }
 
+    c = 0;
     if (!valjane.empty())
         for (modalna_formula* item : valjane)
         {
             cout << endl << item;
+            ++c;
+            if (c > 25) break;
         }
 
+
     cout << endl << "> " << mfs.size() - nevaljane.size() << "T, " << nevaljane.size() << "F" << endl;
+
+    cout << "> priprema za nastavak... \n";
+    for (auto item : mfs)
+        delete item;
 
 
     cout << "> help za pomoc\n";
@@ -128,6 +140,7 @@ int main()
             else if (ulaz.substr(0, 4) == "show") {show = true; }
             else if (ulaz.substr(0, 4) == "hide") {show = false; }
             else if (ulaz.substr(0, 4) == "inst") {cout << modalna_formula::obrisano << "/" << modalna_formula::instancirano << endl; }
+            else if (ulaz.substr(0, 4) == "flat") {stringstream ss; ss << "=ab"; f->feed(ss); f->flatten();  }
             else konstr(f, ulaz);
         else
         {

@@ -1,6 +1,6 @@
 #include "modalna_formula.h"
 
-int modalna_formula::instancirano, modalna_formula::obrisano;
+uintmax_t modalna_formula::instancirano, modalna_formula::obrisano;
 vector<modalna_formula*> modalna_formula::adresice;
 
 ostream& operator<<(ostream& out, modalna_formula *f)

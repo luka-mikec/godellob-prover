@@ -17,7 +17,7 @@ struct modalna_formula
 
     char p = 'x';
 
-    static int instancirano, obrisano;
+    static uintmax_t instancirano, obrisano;
     static vector<modalna_formula*> adresice;
     modalna_formula()
     {
@@ -57,8 +57,8 @@ struct modalna_formula
             pog1->b = b->kopija();
             pog2 = new modalna_formula;
             pog2->tip = 4;
-            pog2->a = b->kopija();
-            pog2->b = a->kopija();
+            pog2->a = b;
+            pog2->b = a;
             neg1 = new modalna_formula;
             neg1->tip = 3;
             neg1->a = pog2;
@@ -66,6 +66,7 @@ struct modalna_formula
             pogtot->tip = 4;
             pogtot->a = pog1;
             pogtot->b = neg1;
+            //delete a; delete b;
             b = 0;
             a = pogtot;
         }
