@@ -9,6 +9,7 @@ using namespace std;
 
 struct stablo // svako stabalce, svoja grana je!
 {
+    bool glmode = true;
     stablo* mother = 0;
     // BEGIN GL
     int razina = 0; // koliko duboko u stablu s obzirom na modalne svjetove
@@ -77,6 +78,7 @@ struct stablo // svako stabalce, svoja grana je!
             novo->mother = this;
             novo->formule_grane.push_back(l->kopija());
             //memchk();
+            novo->glmode = glmode;
             stabla_grane.push_back(novo);
             novo->razina = razina;
             // da smanjimo cijelo stablo, odmah provjera je li zatvoreno
@@ -85,6 +87,7 @@ struct stablo // svako stabalce, svoja grana je!
             novo->mother = this;
             novo->formule_grane.push_back(d->kopija());
             //memchk();
+            novo->glmode = glmode;
             stabla_grane.push_back(novo);
             novo->razina = razina;
             novo->zatvorena = kontrad_na_gore(d, razina);
@@ -149,7 +152,7 @@ struct stablo // svako stabalce, svoja grana je!
             {
             case 0:     zatvorena = true; break;
             case 1:     zatvorena = zatvorena ||kontrad_na_gore(f, razina); break; // ovo zatvorena || tu i ispod bi trebalo biti nepotrebno
-            case 2:     zatvorena = zatvorena ||kontrad_na_gore(f/*GL BEGIN*/, razina /*GL END*/);
+            case 2:     zatvorena = zatvorena ||kontrad_na_gore(f, razina);
 
                 break; // zasad ne postoji pravilo rastavljanja -> a nece ni postojat LOLolo
             case 3:     zatvorena = zatvorena ||kontrad_na_gore(f, razina);
@@ -227,8 +230,27 @@ struct stablo // svako stabalce, svoja grana je!
         }*/
 
         bool sve_zat = true;
+
+        bool nema_pl_grana = true;
         if (!stabla_grane.empty())
         {
+            for (auto s : stabla_grane)
+            {
+                if (s->razina == razina)
+                    nema_pl_grana = false;
+            }
+        }
+
+        if (!nema_pl_grana)
+        {
+            /* BUG
+            otvara se kad je bilo koja grana unutra
+            ali mozda su sve grane ustvari GL-grane
+            i sve otvorene!
+
+            rjesenje: provjeriti
+
+            */
             for (auto s : stabla_grane)
             {
                 if (!zatvorena && !s->zatvorena && s->razina == razina)
@@ -326,6 +348,9 @@ struct stablo // svako stabalce, svoja grana je!
             }
         }
         zatvorena = zatvorena || svezat;
+
+        if (!glmode)
+            return;
 
         // GL BEGIN // TODO: prebaciti izvršavanje u djecu, jer može biti da imamo otvorene grane u djeci
                     //       i ktome da u svakoj grani posebno postoji protuslovlje, ali ne u meni [mozda i nije al za svaki sl]

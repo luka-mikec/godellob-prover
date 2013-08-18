@@ -155,12 +155,14 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
     vector<modalna_formula*> rezultat;
 
     vector<dummy_struct*> trs;
-    vector<vector<dummy_struct*>> skupovi_operatora;
+    vector<vector<dummy_struct*> > skupovi_operatora;
     generiraj_operatore(skup_operatora, kompleksnost, 0, skupovi_operatora, trs);
 
+
+
     vector<dummy_struct*> trs_vars;
-    vector<vector<dummy_struct*>> skupovi_varijabli;
-    generiraj_operatore(/*kompleksnost + // ovo sad je {_|_, p}*/ 2, kompleksnost + 1, 0, skupovi_varijabli, trs_vars); // kompl + 2 zbog _|_
+    vector<vector<dummy_struct*> > skupovi_varijabli;
+    generiraj_operatore(/*max kompleksnost + 2 // ovo sad je {_|_, p}*/ 2, kompleksnost + 1, 0, skupovi_varijabli, trs_vars); // kompl + 2 zbog _|_
     vector<string> skupovi_varijabli_sredeno;
     string abeceda = ".0pqsrabcdefghijklmnotuvxyzw0123456789";
     for (auto skup : skupovi_varijabli)
@@ -196,24 +198,34 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
         vector<modalna_formula* > podformulice;
         mf->pokupi_djecu(podformulice);
 
+
         int n = podformulice.size();
         int maxkod = int(pow((double)mdb + 1., (double)kompleksnost + kompleksnost + 1)+0.1);
         for (int i = 0; i < maxkod; ++i)
         {
             int kod = i;
+            /*cout << kod % (mdb + 1) << " "
+                 << (kod / (mdb + 1)) % (mdb + 1) << " "
+                 << ((kod / (mdb + 1)) / (mdb + 1) )% (mdb + 1) << endl;*/
             modalna_formula* verzija = mf->kopija();
-            for (int j = 1; j <= n; ++j)
+            podformulice = vector<modalna_formula* >();
+            verzija->pokupi_djecu(podformulice);
+            for (int j = 0; j < n; ++j)
             {
-                if (podformulice[j - 1]->tip <= 1) continue;
+                auto f = podformulice[j];
+                if (f->tip <= 1) continue;
 
                 int kolko = kod % (mdb + 1);
                 kod /= (mdb + 1);
+                //if (f->b->tip == 2 || f->a->tip == 2)
+                //    cout << " [something bad happened!] ";
                 while (kolko > 0)
                 {
-                    modalna_formula* stara = verzija->a;
-                    verzija->a = new modalna_formula;
-                    verzija->a->tip = 2;
-                    verzija->a->a = stara;
+
+                    modalna_formula* stara = f->a;
+                    f->a = new modalna_formula;
+                    f->a->tip = 2;
+                    f->a->a = stara;
                     --kolko;
                 }
 
@@ -221,24 +233,44 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
                 kod /= (mdb + 1);
                 while (kolko > 0)
                 {
-                    modalna_formula* stara = verzija->b;
-                    verzija->b = new modalna_formula;
-                    verzija->b->tip = 2;
-                    verzija->b->a = stara;
+
+                    modalna_formula* stara = f->b;
+                    f->b = new modalna_formula;
+                    f->b->tip = 2;
+                    f->b->a = stara;
                     --kolko;
                 }
             }
             int kolko = kod % (mdb + 1);
             while (kolko > 0)
             {
+                //if (kolko > 2)
+                //    cout << "break";
                 modalna_formula* nova = new modalna_formula;
                 nova->tip = 2;
                 nova->a = verzija;
                 verzija = nova;
                 --kolko;
             }
-            konacan_rezultat.push_back(verzija);
+
+            bool dalje = true;
+            //cout << verzija << endl;
+            vector<modalna_formula* > brzobrzo;
+            verzija->pokupi_djecu(brzobrzo);
+            for (auto *pf : podformulice) // brzi prune
+                if (pf->tip == 4)
+                {
+                    if (pf->a->tip == 0)
+                        dalje = false;
+                    if (pf->a->je_jednaka(pf->b))
+                        dalje = false;
+                    if (!dalje) break;
+                }
+
+            if (dalje)
+                konacan_rezultat.push_back(verzija);
         }
+        //cout << "gotovo";
     }
 
     vec_del(rezultat);

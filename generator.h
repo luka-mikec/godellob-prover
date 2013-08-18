@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <cmath> // pow je valjda tu a clang/emcc se zali
 #include "modalna_formula.h"
 using namespace std;
 

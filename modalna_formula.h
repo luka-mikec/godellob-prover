@@ -5,9 +5,12 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <map>
              //#define dbgmsg
 //#undef dbgmsg
 using namespace std;
+
+extern int fancy;
 
 struct modalna_formula
 {
@@ -149,6 +152,29 @@ struct modalna_formula
 
     int otkud = 0;
 
+    string get_prefix_rep()
+    {
+        switch (tip)
+        {
+        case 0:
+            return "0";
+        case 1:
+            return string(1, p);
+        case 2:
+            return "1" + a->get_prefix_rep();
+        case 3:
+            return "2" + a->get_prefix_rep();
+        case 4:
+            return "3" + a->get_prefix_rep() + b->get_prefix_rep();
+        case 5:
+            return "4" + a->get_prefix_rep() + b->get_prefix_rep();
+        case 6:
+            return "5" + a->get_prefix_rep() + b->get_prefix_rep();
+        case 7:
+            return "6" + a->get_prefix_rep() + b->get_prefix_rep();
+        }
+    }
+
     bool je_negacija(modalna_formula *f)
     {
         modalna_formula *a = new modalna_formula;
@@ -161,6 +187,17 @@ struct modalna_formula
         if (je_jednaka(a)) {a->a = 0; delete a; return true;}
 
         a->a = 0; delete a;
+        return false;
+    }
+
+    bool je_negacija()
+    {
+        if (tip == 3) return true;
+        if (tip == 4)
+            if (b)
+                return !b->tip;
+            else
+                return false;
         return false;
     }
 
