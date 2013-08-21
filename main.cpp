@@ -4,8 +4,10 @@ int HOW_MANY_OPERATORS = 0;
 
 #include <sstream>
 #include <fstream>
-#include "stablo.h"
+#include "tree.h"
 #include "generator.h"
+#include <sys/time.h>
+
 
 using namespace std;
 
@@ -33,109 +35,109 @@ void rek_ispis(dummy_struct* r, string pref, bool l = true)
 bool show = true;
 bool glmode = false;
 
-modalna_formula* istina; // _|_ -> _|_, najjednostavnije za gen.
+wff* istina; // _|_ -> _|_, najjednostavnije za gen.
 
-bool prop_istovrijedne(modalna_formula* f, modalna_formula* g)
+bool prop_istovrijedne(wff* f, wff* g)
 {
-    modalna_formula* q1 = new modalna_formula;
-    q1->tip = 3;
-    q1->a = new modalna_formula;
-    q1->a->tip = 7;
-    q1->a->a = f->kopija();
-    q1->a->b = g->kopija();
+    wff* q1 = new wff;
+    q1->type = wff::neg;
+    q1->a = new wff;
+    q1->a->type = wff::bicond;
+    q1->a->a = f->deep_copy();
+    q1->a->b = g->deep_copy();
     q1->flatten();
-    stablo s3;
+    tree s3;
     s3.glmode = false;
     s3.izgradi_za(q1);
     delete q1;
-    return s3.zatvorena;
+    return s3.closed_branch;
 }
 
-bool pre_prune(modalna_formula* mf)
+bool pre_prune(wff* mf)
 {
 
     // -1. ako je jednaka istini, ok
-    if (istina->je_jednaka(mf))
+    if (istina->syntactically_equals(mf))
         return false; // najjednostavniji oblik istine se ne eliminira
 
     // 0.0 formule u kojima izrazi nisu leksikografski poredani (_|_ > p)
     // formule u kojima je ~p izraženo kao p <-> _|_
     // formule u kojima se javlja ocita dvostruka negacija
-    if (mf->tip > 4)
-        if (mf->a->tip < 2 && mf->b->tip < 2)
+    if (mf->binary() && mf->type != wff::cond)
+        if (mf->a->primitive() && mf->b->primitive())
         {
-            if (mf->a->tip < mf->b->tip)
+            if (mf->a->type < mf->b->type)
                 return true;
             if (mf->a->p > mf->b->p)
                 return true;
 
         }
 
-    if (mf->tip > 3)
-        if (mf->b->tip == 0 || mf->a->tip == 0)
-            if (mf->tip != 4)
+    if (mf->binary())
+        if (mf->b->type == wff::falsum || mf->a->type == wff::falsum)
+            if (mf->type != wff::cond)
                 return true;
-    if (mf->tip == 4)
-        if (mf->b->tip == 4)
-            if (mf->b->b->tip == 0)
+    if (mf->type == wff::cond)
+        if (mf->b->type == wff::cond)
+            if (mf->b->b->type == wff::falsum)
                 return true;
 
 
 
 
     // 0.5 ako je jednaka tvrdnji o dokazivosti istine (_|_ -> _|_)
-    modalna_formula* sto_imam = mf;
+    wff* sto_imam = mf;
     int lev = 0;
-    while (sto_imam->tip == 2)
+    while (sto_imam->type == wff::box)
     {
         ++lev;
         sto_imam = sto_imam->a;
     }
-    if (istina->je_jednaka(sto_imam)) // ne treba && lev jer taj slucaj prije
+    if (istina->syntactically_equals(sto_imam)) // ne treba && lev jer taj slucaj prije
         return true;
 
     // 1. ako sadrzi tautologiju (jer tada postoji manja koja ju sadrzi)
-    modalna_formula* negacija = new modalna_formula;
-    negacija->a = mf->kopija();
-    negacija->tip = 3;
-    negacija->otkud = 101;
-    stablo s;
+    wff* negacija = new wff;
+    negacija->a = mf->deep_copy();
+    negacija->type = wff::neg;
+    //negacija->otkud = 101;
+    tree s;
     s.glmode = false;
     negacija->flatten();
     s.izgradi_za(negacija);
     delete negacija;
-    if (s.zatvorena) return true;
+    if (s.closed_branch) return true;
 
     // 2. ako je oblika [][]...[]_|_ -> [][]...[]
     //    ili [][]...[]F /</-> [][]...[]G, i F <-> G
-    if (mf->tip == 4 || mf->tip == 7)
+    if (mf->type == wff::cond || mf->type == wff::bicond)
     {
         int level = 0;
-        modalna_formula* sto_imam = mf->a;
-        while (sto_imam->tip == 2)
+        wff* sto_imam = mf->a;
+        while (sto_imam->type == wff::box)
         {
             ++level;
             sto_imam = sto_imam->a;
         }
         if (level)
         {
-            stablo s2;
+            tree s2;
             s2.glmode = false;
-            modalna_formula* kop = sto_imam->kopija();
+            wff* kop = sto_imam->deep_copy();
             kop->flatten();
             s2.izgradi_za(kop);
             delete kop;
             //if (s2.zatvorena)
             //{
                 int level2 = 0;
-                modalna_formula* sto_imam2 = mf->b;
-                while (sto_imam2->tip == 2)
+                wff* sto_imam2 = mf->b;
+                while (sto_imam2->type == wff::box)
                 {
                     ++level2;
                     sto_imam2 = sto_imam2->a;
                 }
-                if (level2 >= level && s2.zatvorena &&
-                        (mf->tip == 4 || level2 == level))
+                if (level2 >= level && s2.closed_branch &&
+                        (mf->type == wff::cond || level2 == level))
                     return true;
                 if (level2 == level)
                 {
@@ -150,27 +152,27 @@ bool pre_prune(modalna_formula* mf)
 
     // pretp da su svi pointeri validni
     bool v1 = false, v2 = false;
-    if (mf->tip > 1)
+    if (mf->operates())
         v1 = pre_prune(mf->a);
     if (v1) return true;
-    if (mf->tip > 3)
+    if (mf->binary())
         v2 = pre_prune(mf->b);
     return v1 || v2;
 }
 
-bool rek(modalna_formula *mf)
+bool rek(wff *mf)
 {
 
     bool v1 = false, v2 = false;
-    if (mf->tip > 1)
+    if (mf->operates())
         v1 = rek(mf->a);
     if (v1) return true;
-    if (mf->tip > 3)
+    if (mf->binary())
         v2 = rek(mf->b);
     return v1 || v2;
 }
 
-bool add_prune(modalna_formula* item)
+bool add_prune(wff* item)
 {
     bool fail = false;
 
@@ -179,28 +181,28 @@ bool add_prune(modalna_formula* item)
         return true;
     }*/
 
-    vector<modalna_formula*> polje;
-    item->pokupi_djecu(polje);
+    vector<wff*> polje;
+    item->collect_subwffs(polje);
     vector<char> slova;
-    for (modalna_formula* el : polje)
-        if (el->je_negacija())
-            if (el->a->tip == 1)
+    for (wff* el : polje)
+        if (el->syntactically_negation_of())
+            if (el->a->type == wff::prop)
                 if (find(slova.begin(), slova.end(), el->a->p) == slova.end())
                     slova.push_back(el->a->p);
     if (slova.size())
     for (char slovo : slova)
     {
         fail = true;
-        for (modalna_formula* el : polje)
+        for (wff* el : polje)
         {
-            if (el->tip > 1 && el->tip <= 3)
+            if (el->unary() )
                 if (el->a->p == slovo)
                     fail = false;
-            if (el->tip > 3)
+            if (el->binary())
             {
                 if (el->b->p == slovo)
                     fail = false;
-                if (el->a->p == slovo && el->b->tip != 0)
+                if (el->a->p == slovo && el->b->type != wff::falsum)
                     fail = false;
             }
          }
@@ -210,14 +212,14 @@ bool add_prune(modalna_formula* item)
     return fail;
 }
 
-bool prop_normalno_ekvivalentne(modalna_formula *&f, modalna_formula *&g)
+bool prop_normalno_ekvivalentne(wff *&f, wff *&g)
 {
-    if (f->je_jednaka(g)) return true;
+    if (f->syntactically_equals(g)) return true;
     if (prop_istovrijedne(f, g)) return true;
 
-    if (f->tip == 2 && g->tip == 2)
+    if (f->type == wff::box && g->type == wff::box)
         return prop_normalno_ekvivalentne(f->a, g->a);
-    if (f->tip == 4 && g->tip == 4)
+    if (f->type == wff::cond && g->type == wff::cond)
     {
         return prop_normalno_ekvivalentne(f->a, g->a) &&
                 prop_normalno_ekvivalentne(f->b, g->b);
@@ -225,33 +227,38 @@ bool prop_normalno_ekvivalentne(modalna_formula *&f, modalna_formula *&g)
     return false;
 }
 
-void konstr(modalna_formula* f, string ulaz)
+void konstr(wff* f, string ulaz)
 {
-    stringstream Ulaz;
+   stringstream Ulaz;
    Ulaz << ulaz; //jaojao.c_str();
    f->feed(Ulaz);
    cout << "Formula: " << f;
-   bool zan = pre_prune(f);
-   bool zan2 = add_prune(f);
+   //bool zan = pre_prune(f);
+   //bool zan2 = add_prune(f);
    f->flatten();
-   stablo s;
+   tree s;
    //s.glmode = false;
+
+   timespec ts, ps;
+   clock_gettime(CLOCK_REALTIME, &ts);
    s.izgradi_za(f);
+   clock_gettime(CLOCK_REALTIME, &ps);
+
    if (show)
    {
        cout << endl << "Translation: " << f << endl << "Tree:\n";
        cout << s;
        //cout << "\"Interestigness\": " << ((zan ? 0 : 1)*2 + (zan2 ? 0 : 1)) << "/3" << endl;
    }
-   else cout << "\t |-> " << (s.zatvorena ? "X" : "O") << endl;
-
+   else cout << "\t |-> " << (s.closed_branch ? "X" : "O") << endl;
+   cout << "Calc took " << (ps.tv_nsec - ts.tv_nsec) / 1000000. << "ms" << endl;
 }
 
 void auto_prover(string outputloc)
 {
     ofstream baza(outputloc);
 
-    vector<modalna_formula*> mfs;
+    vector<wff*> mfs;
      cout << endl << "> (1/2) Generating formulas 0%"; cout.flush();
      int max = HOW_MANY_OPERATORS + 1;
      for (int k = 1; k < max; ++k)
@@ -262,14 +269,14 @@ void auto_prover(string outputloc)
      }
      cout << "\r> (1/2) Generating formulas completed, size: " << mfs.size() << endl;
      cout << endl << "> ...";
-     vector<modalna_formula*> nevaljane;
-     vector<modalna_formula*> valjane;
+     vector<wff*> nevaljane;
+     vector<wff*> valjane;
      int step = mfs.size() / 2500;
      if (!step) step = 1;
      step = 1;
-     for (int c = 0; c < mfs.size(); )
+     for (int c = 1800; c < mfs.size(); )
      {
-         modalna_formula* &item = mfs[c++];
+         wff* &item = mfs[c++];
          if (c % step == 0 || c == mfs.size())
              cout << "\r> (2/2) Building trees " << (100 * c / mfs.size()) << "% [" << c << "/" << mfs.size() << "]";
 
@@ -277,39 +284,49 @@ void auto_prover(string outputloc)
 
          //cout << item << endl;
 
-         bool fail =  pre_prune(item);
-         if (fail) continue;
+         bool fail = false;
 
-         stablo s;
-         modalna_formula* negacija = new modalna_formula;
-         negacija->tip = 3;
-         negacija->a = item->kopija();
+         //bool fail =  pre_prune(item);
+         //if (fail) continue;
+
+         tree s;
+         wff* negacija = new wff;
+         negacija->type = wff::neg;
+         negacija->a = item->deep_copy();
          negacija->flatten();
 
+         timespec ts, ps;
+         clock_gettime(CLOCK_REALTIME, &ts);
          s.izgradi_za(negacija);
+         clock_gettime(CLOCK_REALTIME, &ps);
+         if (ps.tv_nsec - ts.tv_nsec > 1000000)
+         {
+            cout << ps.tv_nsec - ts.tv_nsec << endl;
+            cout << negacija << endl;
+         }
 
-         if (s.zatvorena)
+         if (s.closed_branch)
          {
 
-             vector<modalna_formula*>temp;
-             item->pokupi_djecu(temp);
+             vector<wff*>temp;
+             item->collect_subwffs(temp);
              int vel1 = temp.size();
              for (int k = 0; k < valjane.size(); ++k)
              {
-                 modalna_formula* item2 = valjane[k];
+                 wff* item2 = valjane[k];
                  bool sadrzan = prop_normalno_ekvivalentne(item, item2);
-                 if (!sadrzan && item->tip == 2)
+                 if (!sadrzan && item->type == wff::box)
                  {
                      sadrzan = prop_normalno_ekvivalentne(item->a, item2);
-                      if (!sadrzan && item->a->tip == 2)
+                      if (!sadrzan && item->a->type == wff::box)
                       {
                          sadrzan = prop_normalno_ekvivalentne(item->a->a, item2);
                       }
                  }
                  if (sadrzan)
                  {
-                     vector<modalna_formula*>temp2;
-                     item2->pokupi_djecu(temp2);
+                     vector<wff*>temp2;
+                     item2->collect_subwffs(temp2);
                      if (vel1 > temp2.size()) fail = true;
                      else
                      {
@@ -318,6 +335,10 @@ void auto_prover(string outputloc)
                      }
                  }
 
+             }
+             if (!fail)
+             {
+                 fail = pre_prune(item);
              }
              if (!fail)
              {
@@ -348,7 +369,7 @@ void auto_prover(string outputloc)
      if (!valjane.empty())
      {
          cout << "\n\nFirst 100 valid: " << endl;
-         for (modalna_formula* item : valjane)
+         for (wff* item : valjane)
          {
              {
                  cout << item << endl;
@@ -367,12 +388,12 @@ void auto_prover(string outputloc)
 
 int main()
 {
-   istina = new modalna_formula;
-   istina->tip = 5;
-   istina->a = new modalna_formula;
-   istina->b = new modalna_formula;
+   istina = new wff;
+   istina->type = wff::cond;
+   istina->a = new wff;
+   istina->b = new wff;
 
-   fancy = 1; // use 2 if console supports unicode
+   wff::print_style = 1; // use 2 if console supports unicode
 
    if (HOW_MANY_OPERATORS)
         auto_prover("output2");
@@ -381,9 +402,23 @@ int main()
     while (1)
     {
         cout << "? ";
-        modalna_formula *f = new modalna_formula;
+        wff *f = new wff;
         string ulaz = "";
+#ifdef EMSCRIPTEN
+        cin >> ulaz;
+        if (ulaz.length() > 3)
+            if (ulaz.length() >= 4)
+                if (ulaz.substr(0, 4) == "view" || ulaz.substr(0, 4) == "auto")
+                {
+                    ulaz += " ";
+                    string r;
+                    cin >> r;
+                    ulaz += r;
+                }
+        if (!(cin))
+#else
         if (!getline(cin, ulaz))
+#endif
         {
             break;
         }
@@ -398,7 +433,7 @@ int main()
                         "& conjunction, > conditional, + disjunction, = biconditional. \n\n" \
                         "Everything else is a propositional letter.\n\n" \
                         "Examples [to check validity add ~ in front of the rest of the formula]: \n\t";
-                modalna_formula* tmp= new modalna_formula;
+                wff* tmp= new wff;
                 string ulaz = "=B#B~B~p";
                 stringstream tmp2; tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", enter: " << ulaz << "\n\t";
                 ulaz = "=B=p~BpB=p~B#";
@@ -413,10 +448,10 @@ int main()
             else if (ulaz.substr(0, 4) == "exit") exit(0);
             else if (ulaz.substr(0, 4) == "show") {show = true; }
             else if (ulaz.substr(0, 4) == "hide") {show = false; }
-            else if (ulaz.substr(0, 4) == "inst") {cout << modalna_formula::obrisano << "/" << modalna_formula::instancirano << endl; }
+            else if (ulaz.substr(0, 4) == "inst") {cout << wff::deleted << "/" << wff::instantiated_new << '(' << wff::instantiated_copies << ')' << endl; }
             else if (ulaz.substr(0, 4) == "flat") {stringstream ss; ss << "=ab"; f->feed(ss); f->flatten();  }
             else if (ulaz.substr(0, 4) == "auto") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> HOW_MANY_OPERATORS; auto_prover("output2"); }
-            else if (ulaz.substr(0, 4) == "view") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> fancy; if (fancy < 0 || fancy > 2) fancy = 0; }
+            else if (ulaz.substr(0, 4) == "view") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> wff::print_style; if (wff::print_style < 0 || wff::print_style > 2) wff::print_style = 0; }
             else konstr(f, ulaz);
         else
         {

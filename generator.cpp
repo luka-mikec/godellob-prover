@@ -1,11 +1,5 @@
 #include "generator.h"
 
-template <class T>
-void vec_del(vector<T>v )
-{
-    for (typename vector<T>::iterator i = v.begin(); i != v.end(); ++i)
-        delete *i;
-}
 
 vector<dummy_struct*> kopiraj_skup_op(vector<dummy_struct*> &skup)
 {
@@ -137,7 +131,7 @@ void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> p
 
 
 
-modalna_formula* bind(dummy_struct* sintakticka_struktura, string razmjestaj_varijabli)
+wff* bind(dummy_struct* sintakticka_struktura, string razmjestaj_varijabli)
 {
     vector<dummy_struct*> polje;
     int crawler = 0;
@@ -150,9 +144,16 @@ modalna_formula* bind(dummy_struct* sintakticka_struktura, string razmjestaj_var
     return sintakticka_struktura->u_modalnu();
 }
 
-vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
+int pow(int a, int b)
 {
-    vector<modalna_formula*> rezultat;
+ int r = a;
+ while (--b) r *= a;
+ return r;
+}
+
+vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
+{
+    vector<wff*> rezultat;
 
     vector<dummy_struct*> trs;
     vector<vector<dummy_struct*> > skupovi_operatora;
@@ -192,39 +193,40 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
 
     int mdb = 2;
     // e, sad još za sve treba modalitete pobacati
-    vector<modalna_formula* > konacan_rezultat;
-    for (modalna_formula* mf : rezultat)
+    vector<wff* > konacan_rezultat;
+    for (wff* mf : rezultat)
     {
-        vector<modalna_formula* > podformulice;
-        mf->pokupi_djecu(podformulice);
+        vector<wff* > podformulice;
+        mf->collect_subwffs(podformulice);
 
 
         int n = podformulice.size();
-        int maxkod = int(pow((double)mdb + 1., (double)kompleksnost + kompleksnost + 1)+0.1);
+        int maxkod = pow(mdb + 1, kompleksnost + kompleksnost + 1);
+	//int maxkod = 1; cout << "GRESKA GRESKA";
         for (int i = 0; i < maxkod; ++i)
         {
             int kod = i;
             /*cout << kod % (mdb + 1) << " "
                  << (kod / (mdb + 1)) % (mdb + 1) << " "
                  << ((kod / (mdb + 1)) / (mdb + 1) )% (mdb + 1) << endl;*/
-            modalna_formula* verzija = mf->kopija();
-            podformulice = vector<modalna_formula* >();
-            verzija->pokupi_djecu(podformulice);
+            wff* verzija = mf->deep_copy();
+            podformulice = vector<wff* >();
+            verzija->collect_subwffs(podformulice);
             for (int j = 0; j < n; ++j)
             {
                 auto f = podformulice[j];
-                if (f->tip <= 1) continue;
+                if (f->primitive()) continue;
 
                 int kolko = kod % (mdb + 1);
                 kod /= (mdb + 1);
-                //if (f->b->tip == 2 || f->a->tip == 2)
+                //if (f->b->tip == wff::box || f->a->tip == wff::box)
                 //    cout << " [something bad happened!] ";
                 while (kolko > 0)
                 {
 
-                    modalna_formula* stara = f->a;
-                    f->a = new modalna_formula;
-                    f->a->tip = 2;
+                    wff* stara = f->a;
+                    f->a = new wff;
+                    f->a->type = wff::box;
                     f->a->a = stara;
                     --kolko;
                 }
@@ -234,9 +236,9 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
                 while (kolko > 0)
                 {
 
-                    modalna_formula* stara = f->b;
-                    f->b = new modalna_formula;
-                    f->b->tip = 2;
+                    wff* stara = f->b;
+                    f->b = new wff;
+                    f->b->type = wff::box;
                     f->b->a = stara;
                     --kolko;
                 }
@@ -246,8 +248,8 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
             {
                 //if (kolko > 2)
                 //    cout << "break";
-                modalna_formula* nova = new modalna_formula;
-                nova->tip = 2;
+                wff* nova = new wff;
+                nova->type = wff::box;
                 nova->a = verzija;
                 verzija = nova;
                 --kolko;
@@ -255,14 +257,14 @@ vector<modalna_formula*> generiraj_formule(int kompleksnost, int skup_operatora)
 
             bool dalje = true;
             //cout << verzija << endl;
-            vector<modalna_formula* > brzobrzo;
-            verzija->pokupi_djecu(brzobrzo);
+            vector<wff* > brzobrzo;
+            verzija->collect_subwffs(brzobrzo);
             for (auto *pf : podformulice) // brzi prune
-                if (pf->tip == 4)
+                if (pf->type == wff::cond)
                 {
-                    if (pf->a->tip == 0)
+                    if (pf->a->type ==wff::falsum)
                         dalje = false;
-                    if (pf->a->je_jednaka(pf->b))
+                    if (pf->a->syntactically_equals(pf->b))
                         dalje = false;
                     if (!dalje) break;
                 }
