@@ -187,10 +187,10 @@ struct tree // svako stabalce, svoja grana je!
                 if (tr->syntactically_equals(f->a))
                     {druga = true; break;}
 
-            //if (!prva) novo->push(f);
-            //if (!druga) novo->push(f->a);
-            if (!prva) novo->formulas.push_back(f);
-            if (!druga) novo->formulas.push_back(f->a);
+            if (!prva) novo->push(f);
+            if (!druga) novo->push(f->a);
+            //if (!prva) novo->formulas.push_back(f);
+            //if (!druga) novo->formulas.push_back(f->a);
         }
         novo->modal_depth = modal_depth + 1;
         trees.push_back(novo);
