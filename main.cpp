@@ -1,28 +1,11 @@
 int HOW_MANY_OPERATORS = 0;
 
-;
-
 #include <sstream>
 #include <fstream>
 #include "tree.h"
 #include "generator.h"
 #include <sys/time.h>
-
-
 using namespace std;
-
-
-
-
-class okvir
-{
-
-};
-
-class model
-{
-    okvir f;
-};
 
 void rek_ispis(dummy_struct* r, string pref, bool l = true)
 {
@@ -31,126 +14,96 @@ void rek_ispis(dummy_struct* r, string pref, bool l = true)
     if (r->d) rek_ispis(r->d, pref + "\t", false);
 }
 
-
 bool show = true;
-bool glmode = false;
+bool modal_mode = false;
+int  modal_logic = 0;
 
 wff* istina; // _|_ -> _|_, najjednostavnije za gen.
 
 bool prop_istovrijedne(wff* f, wff* g)
 {
-    wff* q1 = new wff;
-    q1->type = wff::neg;
-    q1->a = new wff;
-    q1->a->type = wff::bicond;
-    q1->a->a = f->deep_copy();
-    q1->a->b = g->deep_copy();
-    q1->flatten();
+    wff* q1 = new wff(wff::neg, new wff(wff::bicond, f, g));
     tree s3;
-    s3.glmode = false;
-    s3.izgradi_za(q1);
+    s3.modal_mode = false;
+    s3.build_for(q1);
+    q1->a->a = q1->a->b = 0;
     delete q1;
     return s3.closed_branch;
 }
 
 bool pre_prune(wff* mf)
 {
-
-    // -1. ako je jednaka istini, ok
+    // -1. allow truths
     if (istina->syntactically_equals(mf))
         return false; // najjednostavniji oblik istine se ne eliminira
 
-    // 0.0 formule u kojima izrazi nisu leksikografski poredani (_|_ > p)
-    // formule u kojima je ~p izraženo kao p <-> _|_
-    // formule u kojima se javlja ocita dvostruka negacija
+    // 0.0 commutative operations with unsorted contents
     if (mf->binary() && mf->type != wff::cond)
         if (mf->a->primitive() && mf->b->primitive())
         {
-            if (mf->a->type < mf->b->type)
-                return true;
-            if (mf->a->p > mf->b->p)
-                return true;
-
+            if (mf->a->type < mf->b->type) return true;
+            if (mf->a->p > mf->b->p)        return true;
         }
 
+    // falsum outside of conditional
     if (mf->binary())
         if (mf->b->type == wff::falsum || mf->a->type == wff::falsum)
-            if (mf->type != wff::cond)
-                return true;
+            if (mf->type != wff::cond) return true;
+
+    // double negation
     if (mf->type == wff::cond)
         if (mf->b->type == wff::cond)
-            if (mf->b->b->type == wff::falsum)
-                return true;
+            if (mf->b->b->type == wff::falsum) return true;
 
-
-
-
-    // 0.5 ako je jednaka tvrdnji o dokazivosti istine (_|_ -> _|_)
+    // [][][]...[](_|_ -> _|_), since that's T
     wff* sto_imam = mf;
     int lev = 0;
     while (sto_imam->type == wff::box)
-    {
-        ++lev;
+    {   ++lev;
         sto_imam = sto_imam->a;
     }
-    if (istina->syntactically_equals(sto_imam)) // ne treba && lev jer taj slucaj prije
-        return true;
+    if (istina->syntactically_equals(sto_imam)) return true;
 
     // 1. ako sadrzi tautologiju (jer tada postoji manja koja ju sadrzi)
-    wff* negacija = new wff;
-    negacija->a = mf->deep_copy();
-    negacija->type = wff::neg;
-    //negacija->otkud = 101;
+    wff* negacija = new wff(wff::neg, mf);
     tree s;
-    s.glmode = false;
-    negacija->flatten();
-    s.izgradi_za(negacija);
-    delete negacija;
+    s.modal_mode = false;
+    s.build_for(negacija);
+    negacija->a = 0; delete negacija;
     if (s.closed_branch) return true;
 
-    // 2. ako je oblika [][]...[]_|_ -> [][]...[]
-    //    ili [][]...[]F /</-> [][]...[]G, i F <-> G
+    // of form [][]...[]_|_ -> [][]...[]something
+    // or [][]...[]F /</-> [][]...[]G, i F <-> G
     if (mf->type == wff::cond || mf->type == wff::bicond)
     {
         int level = 0;
         wff* sto_imam = mf->a;
         while (sto_imam->type == wff::box)
-        {
-            ++level;
+        {   ++level;
             sto_imam = sto_imam->a;
         }
         if (level)
         {
             tree s2;
-            s2.glmode = false;
-            wff* kop = sto_imam->deep_copy();
-            kop->flatten();
-            s2.izgradi_za(kop);
-            delete kop;
-            //if (s2.zatvorena)
-            //{
-                int level2 = 0;
-                wff* sto_imam2 = mf->b;
-                while (sto_imam2->type == wff::box)
-                {
-                    ++level2;
-                    sto_imam2 = sto_imam2->a;
-                }
-                if (level2 >= level && s2.closed_branch &&
-                        (mf->type == wff::cond || level2 == level))
-                    return true;
-                if (level2 == level)
-                {
-                    bool zatv = prop_istovrijedne(sto_imam, sto_imam2);
-
-                    if (zatv)
-                        return true;
-                }
-            //}
+            s2.modal_mode = false;
+            s2.build_for(sto_imam);
+            int level2 = 0;
+            wff* sto_imam2 = mf->b;
+            while (sto_imam2->type == wff::box)
+            {   ++level2;
+                sto_imam2 = sto_imam2->a;
+            }
+            if (level2 >= level && s2.closed_branch &&
+                    (mf->type == wff::cond || level2 == level))
+                return true;
+            if (level2 == level)
+            {
+                bool zatv = prop_istovrijedne(sto_imam, sto_imam2);
+                if (zatv) return true;
+            }
         }
     }
 
-    // pretp da su svi pointeri validni
     bool v1 = false, v2 = false;
     if (mf->operates())
         v1 = pre_prune(mf->a);
@@ -160,26 +113,9 @@ bool pre_prune(wff* mf)
     return v1 || v2;
 }
 
-bool rek(wff *mf)
-{
-
-    bool v1 = false, v2 = false;
-    if (mf->operates())
-        v1 = rek(mf->a);
-    if (v1) return true;
-    if (mf->binary())
-        v2 = rek(mf->b);
-    return v1 || v2;
-}
-
 bool add_prune(wff* item)
 {
     bool fail = false;
-
-   /* if (rek(item))
-    {
-        return true;
-    }*/
 
     vector<wff*> polje;
     item->collect_subwffs(polje);
@@ -206,8 +142,7 @@ bool add_prune(wff* item)
                     fail = false;
             }
          }
-        if (fail)
-            return fail;
+        if (fail) return fail;
     }
     return fail;
 }
@@ -227,31 +162,35 @@ bool prop_normalno_ekvivalentne(wff *&f, wff *&g)
     return false;
 }
 
+
+
+__syscall_slong_t measure(wff* f, tree& s)
+{
+    timespec ts, ps;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    s.build_for(f);
+    clock_gettime(CLOCK_REALTIME, &ps);
+    return ps.tv_nsec - ts.tv_nsec;
+}
+
 void konstr(wff* f, string ulaz)
 {
-   stringstream Ulaz;
-   Ulaz << ulaz; //jaojao.c_str();
-   f->feed(Ulaz);
-   cout << "Formula: " << f;
-   //bool zan = pre_prune(f);
-   //bool zan2 = add_prune(f);
-   f->flatten();
-   tree s;
-   //s.glmode = false;
+   stringstream Ulaz; Ulaz << ulaz; f->feed(Ulaz);
 
-   timespec ts, ps;
-   clock_gettime(CLOCK_REALTIME, &ts);
-   s.izgradi_za(f);
-   clock_gettime(CLOCK_REALTIME, &ps);
+   cout << "Formula: " << f;
+
+   tree s;
+   s.modal_logic = (modal_logic == 0 ? tree::GL : modal_logic == 1 ? tree::K4 : tree::K);
+
+   auto res = measure(f, s);
 
    if (show)
    {
        cout << endl << "Translation: " << f << endl << "Tree:\n";
        cout << s;
-       //cout << "\"Interestigness\": " << ((zan ? 0 : 1)*2 + (zan2 ? 0 : 1)) << "/3" << endl;
    }
    else cout << "\t |-> " << (s.closed_branch ? "X" : "O") << endl;
-   cout << "Calc took " << (ps.tv_nsec - ts.tv_nsec) / 1000000. << "ms" << endl;
+   cout << "Calc took " << (res / 1000000.) << "ms" << endl;
 }
 
 void auto_prover(string outputloc)
@@ -274,36 +213,46 @@ void auto_prover(string outputloc)
      int step = mfs.size() / 2500;
      if (!step) step = 1;
      step = 1;
-     for (int c = 1800; c < mfs.size(); )
+
+     __syscall_slong_t totaltime = 0;
+     timespec ts, ps;
+     clock_gettime(CLOCK_REALTIME, &ts);
+
+     bool semi_k4_prune = false;
+
+     stringstream additiv; additiv << "&&B>BpBBp>BpBBpBB>BpBBp";
+     wff *dodatak;
+     if (semi_k4_prune) dodatak = new wff(additiv);
+
+     for (int c = 0; c < mfs.size(); )
      {
          wff* &item = mfs[c++];
          if (c % step == 0 || c == mfs.size())
-             cout << "\r> (2/2) Building trees " << (100 * c / mfs.size()) << "% [" << c << "/" << mfs.size() << "]";
+             cout << "\r> (2/2) Building trees " << (100 * c / mfs.size())
+                  << "% [" << c << "/" << mfs.size() << "]";
 
          cout.flush();
 
-         //cout << item << endl;
-
          bool fail = false;
-
-         //bool fail =  pre_prune(item);
-         //if (fail) continue;
-
          tree s;
-         wff* negacija = new wff;
-         negacija->type = wff::neg;
-         negacija->a = item->deep_copy();
+
+
+         wff* negacija;
+         if (semi_k4_prune)
+             negacija= new wff(wff::neg,
+                                 new wff(wff::cond,
+                                         dodatak->deep_copy(),
+                                         item->deep_copy()));
+         else  negacija= new wff(wff::neg, item->deep_copy());
+
          negacija->flatten();
 
-         timespec ts, ps;
-         clock_gettime(CLOCK_REALTIME, &ts);
-         s.izgradi_za(negacija);
-         clock_gettime(CLOCK_REALTIME, &ps);
-         if (ps.tv_nsec - ts.tv_nsec > 1000000)
+         auto t = measure(negacija, s);
+         /*if (t > 1000000)
          {
-            cout << ps.tv_nsec - ts.tv_nsec << endl;
+            cout << t << endl;
             cout << negacija << endl;
-         }
+         }*/
 
          if (s.closed_branch)
          {
@@ -338,12 +287,13 @@ void auto_prover(string outputloc)
              }
              if (!fail)
              {
-                 fail = pre_prune(item);
+                 tree josjedno;
+                 josjedno.modal_logic = tree::K;
+                 josjedno.build_for(negacija);
+                 fail = josjedno.closed_branch;
              }
-             if (!fail)
-             {
-                 fail = add_prune(item);
-             }
+             if (!fail) fail = pre_prune(item);
+             if (!fail) fail = add_prune(item);
              if (!fail) // nije isti if jer je fail volatile
              {
                  /*stringstream jj; jj << item; string jaojao = jj.str();
@@ -364,6 +314,10 @@ void auto_prover(string outputloc)
          }
          delete negacija;
      }
+
+     clock_gettime(CLOCK_REALTIME, &ps);
+     totaltime = ps.tv_sec - ts.tv_sec;
+     cout << endl << "Took " << totaltime << "s" << endl;
 
      int c = 0;
      if (!valjane.empty())
@@ -451,6 +405,7 @@ int main()
             else if (ulaz.substr(0, 4) == "inst") {cout << wff::deleted << "/" << wff::instantiated_new << '(' << wff::instantiated_copies << ')' << endl; }
             else if (ulaz.substr(0, 4) == "flat") {stringstream ss; ss << "=ab"; f->feed(ss); f->flatten();  }
             else if (ulaz.substr(0, 4) == "auto") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> HOW_MANY_OPERATORS; auto_prover("output2"); }
+            else if (ulaz.substr(0, 4) == "setl") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> modal_logic;}
             else if (ulaz.substr(0, 4) == "view") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> wff::print_style; if (wff::print_style < 0 || wff::print_style > 2) wff::print_style = 0; }
             else konstr(f, ulaz);
         else
@@ -458,17 +413,9 @@ int main()
             konstr(f, ulaz);
         }
 
-       /* for (auto el : modalna_formula::adresice)
-        {
-            cout << el << " : " << el->otkud << endl;
-        }*/
-
         delete f;
 
-        //cin.ignore();
-
     }
-
     return 0;
 }
 

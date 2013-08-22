@@ -1,6 +1,6 @@
 #include "wff.h"
 /*
- * modalna_formula impl., and:
+ * wff impl., and:
  *  init_styles(), loads possible output styles (ascii, unicode etc.)
  *  operator<<, for outputing to ostreams
  */
@@ -9,8 +9,6 @@
 int wff::print_style = 0;
 uintmax_t wff::instantiated_new, wff::deleted,
           wff::instantiated_copies;
-//vector<wff*> wff::adresice;
-
 
 void wff::flatten()
 {
@@ -160,22 +158,41 @@ wff *wff::deep_copy()
     return res;
 }
 
+void wff::collect_subwffs(vector<wff*> &field) // collects sub-wffs
+{
+    field.push_back(this);
+    if (a) a->collect_subwffs(field);
+    if (b) b->collect_subwffs(field);
+}
+
+vector<wff*> wff::shallow_copy_set(vector<wff*> &skup)
+{   vector<wff*> novi;
+    for (int i = 0; i < skup.size(); ++i)
+        novi.push_back(skup[i]);
+    return novi;
+}
+
+vector<wff*> wff::deep_copy_set(vector<wff*> &skup)
+{   vector<wff*> novi;
+    for (int i = 0; i < skup.size(); ++i)
+        novi.push_back(skup[i]->deep_copy());
+    return novi;
+}
+
+void wff::show_mem(string pref)
+{
+    cout << pref << (void*)this << endl; cout.flush();
+    if (operates()) if (a) a->show_mem(pref + " ");
+    if (binary()) if (b) b->show_mem(pref + " ");
+}
+
+
 wff::~wff()
 {
-#ifdef dbgmsg
-    cout << "BR: " << (void*)this << " ~ " << this <<
-            (otkud ? " temp " : " ") << otkud << endl;
-    cout.flush();
-    if (!otkud)
-           cout << "break";
-    /* auto it = std::find(adresice.begin(),adresice.end(),this);
-     if (it != adresice.end())
-       adresice.erase(it);*/
-#endif
     ++deleted;
 
-    if (operates() && a) {/*a->otkud = otkud;*/ delete a;}
-    if (binary() && b) {/*b->otkud = otkud;*/ delete b;}
+    if (operates() && a) { delete a;}
+    if (binary() && b) {delete b;}
 }
 
 
