@@ -1,0 +1,70 @@
+T, L, D, N
+LT, DT
+
+□p → □□p
+T, Transitivity axiom (theorem within GL)
+
+□(□p → p) → □p
+L, Löb's theorem (axiom within GL)
+	□(□□p → □p) → □□p
+	□(□□⊥ → □⊥) → □□⊥
+	□(□⊥ → ⊥) → □⊥
+		normal □(□⊥ → ⊥) → □p
+			□(□⊥ → ⊥) → □□p
+
+	normal □(□p ↔ p) → □p
+		□(□□p ↔ □p) → □□p
+
+		normal □(□p ↔ p) ↔ □p  
+			□(□p ↔ □□p) ↔ □□p 
+
+□(□p → p) → □□p
+LT, by L & T
+
+□(□□p → p) → □p
+D
+	□(□□⊥ → ⊥) → □⊥
+		normal □(□□⊥ → ⊥) → □p
+		normal □(□□⊥ → ⊥) → □□p
+
+	normal □(□□p ↔ p) → □p
+		normal □(□□p ↔ p) ↔ □p
+
+□(□□p → p) → □□p
+DT, by D & T
+	normal □(□□p ↔ p) → □□p
+
+
+□(□p → ⊥) → □⊥
+N
+	[□(□⊥ → ⊥) → □⊥ cf. L]
+
+	□(□□p → ⊥) → □⊥
+		normal □(□□p → ⊥) → □p
+
+	normal □(□p → ⊥) → □p
+		□(□□p → ⊥) → □□p
+
+
+K4 theorems:
+	□p → □□(p ↔ □p)
+	□p → □□(p ↔ □□p)
+	□p → □(□p ↔ □□p)
+	□p → □□(□p ↔ □□p)
+	□p → □□(□p → p)
+	□p → □□(□□p → p)
+	□p → □(p → □p)
+	□p → □□(p → □p)
+	□p → □(□□p → □p)
+	□p → □□(□□p → □p)
+	□p → □(p → □□p)
+	□p → □□(p → □□p)
+	p → (□p → □□p)
+	p → □(□p → □□p)
+	□□p → □(□p → □□p)
+	p → □□(□p → □□p)
+	□(□□p → □(p → □□p))
+	□p → □□(□⊥ → p)
+	□p → □□(□□⊥ → p)
+	□p → □(□□⊥ → □p)
+	□p → □□(□□⊥ → □p)
