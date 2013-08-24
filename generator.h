@@ -1,11 +1,6 @@
 #ifndef GENERATOR_H
 #define GENERATOR_H
 
-#include <vector>
-#include <list>
-#include <algorithm>
-//#include <cmath> // pow je valjda tu a clang/emcc se zali
-//#include <cstdlib> // ili tu lol // napisao svoju -.-
 #include "wff.h"
 using namespace std;
 
@@ -23,7 +18,10 @@ struct dummy_struct
                           return n; }
     wff* u_modalnu() {
         wff *mf = new wff;
-        mf->type = data1 != 2 ? wff::cond : wff::bicond; // obviously more code needed to allow &&, || etc.
+        mf->type = data1 == 1 ? wff::cond :
+                   data1 == 2 ? wff::bicond :
+                   data1 == 3 ? wff::vee :
+                   wff::wedge;
         if (l) mf->a = l->u_modalnu();
         else { mf->a = new wff;
             mf->a->type = (data2 == '0' ? wff::falsum : wff::prop);
@@ -56,7 +54,7 @@ void generiraj_operatore(int tipovaop, int granauk, int trtip,
 
 void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> preostali, vector <dummy_struct*> &strukture);
 
-vector<wff*> generiraj_formule(int kompleksnost, int operatori);
+void generiraj_formule(vector<wff*> &rez, int kompleksnost, int operatori, int mdb = 2);
 
 
 

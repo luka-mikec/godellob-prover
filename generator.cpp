@@ -16,8 +16,6 @@ void pokupi(dummy_struct* root, vector<dummy_struct*> &polje)
     if (root->d) pokupi(root->d, polje);
 }
 
-
-
 void generiraj_operatore(int tipovaop, int granauk, int trtip,
                          vector<vector<dummy_struct*> >& skupovi, vector<dummy_struct*> &trenutni_skup)
 {
@@ -30,13 +28,13 @@ void generiraj_operatore(int tipovaop, int granauk, int trtip,
             for (int k = 0; k < i; ++k) nadskup.push_back(new dummy_struct(trtip + 1));
 
             generiraj_operatore(tipovaop, granauk, trtip + 1, skupovi, nadskup);
-            vec_del(trenutni_skup);
+            vec_del(nadskup);
         }
     else
     {
         while (trenutni_skup.size() < granauk)
             trenutni_skup.push_back(new dummy_struct(trtip + 1));
-        skupovi.push_back(trenutni_skup);
+        skupovi.push_back(kopiraj_skup_op(trenutni_skup));
         return;
     }
 }
@@ -151,15 +149,12 @@ int pow(int a, int b)
  return r;
 }
 
-vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
+void generiraj_formule(vector<wff*>& konacan_rezultat, int kompleksnost, int skup_operatora, int mdb)
 {
-    vector<wff*> rezultat;
-
+    vector<wff* > rezultat;
     vector<dummy_struct*> trs;
     vector<vector<dummy_struct*> > skupovi_operatora;
     generiraj_operatore(skup_operatora, kompleksnost, 0, skupovi_operatora, trs);
-
-
 
     vector<dummy_struct*> trs_vars;
     vector<vector<dummy_struct*> > skupovi_varijabli;
@@ -190,19 +185,14 @@ vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
 
         }
     }
-
-    int mdb = 2;
     // e, sad još za sve treba modalitete pobacati
-    vector<wff* > konacan_rezultat;
+
     for (wff* mf : rezultat)
     {
         vector<wff* > podformulice;
-        mf->collect_subwffs(podformulice);
 
-
-        int n = podformulice.size();
         int maxkod = pow(mdb + 1, kompleksnost + kompleksnost + 1);
-	//int maxkod = 1; cout << "GRESKA GRESKA";
+
         for (int i = 0; i < maxkod; ++i)
         {
             int kod = i;
@@ -212,7 +202,7 @@ vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
             wff* verzija = mf->deep_copy();
             podformulice = vector<wff* >();
             verzija->collect_subwffs(podformulice);
-            for (int j = 0; j < n; ++j)
+            for (int j = 0; j < podformulice.size(); ++j)
             {
                 auto f = podformulice[j];
                 if (f->primitive()) continue;
@@ -268,6 +258,14 @@ vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
                         dalje = false;
                     if (!dalje) break;
                 }
+                else if (pf->binary())
+                {
+                    if ((pf->a->type == wff::falsum) != (pf->b->type == wff::falsum))
+                        dalje = false;
+                    if (pf->a->syntactically_equals(pf->b))
+                        dalje = false;
+                    if (!dalje) break;
+                }
 
             if (dalje)
                 konacan_rezultat.push_back(verzija);
@@ -276,14 +274,6 @@ vector<wff*> generiraj_formule(int kompleksnost, int skup_operatora)
     }
 
     vec_del(rezultat);
-    return konacan_rezultat;
-
-    // konacno, gradimo formule: za svaku strukturu, svaka perm. varijabli
-
-
-
-
-
 }
 
 

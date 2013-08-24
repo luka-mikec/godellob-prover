@@ -4,6 +4,7 @@
 /* modal formula (well, the well formed one :D)
  */
 
+#include <string>
 #include <sstream>
 #include <iostream>
 #include <vector>
