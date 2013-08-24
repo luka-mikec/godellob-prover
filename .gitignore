@@ -1,3 +1,4 @@
+*.autosave
 gl/
 gl/*
 gl.pro.user

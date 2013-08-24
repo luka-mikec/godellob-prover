@@ -138,12 +138,8 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
 
          bool fail = false;
 
-         stringstream strs(">B>B##BB#");
-          wff* test = new wff(strs);
-          if (test->syntactically_equals(item))
-          {
-              cout << "break";
-          }
+         /*stringstream strs(">B>B##BB#");wff* test = new wff(strs);
+         if (test->syntactically_equals(item))cout << "break";*/
 
          if (!fail) // is it already contained?
          {
