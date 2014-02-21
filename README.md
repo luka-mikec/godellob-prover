@@ -15,5 +15,5 @@ Windows: same as Unixoids, but might require downloading MinGW first (gcc for Wi
 
 ![Screenshot godellob-prover](/res/shot.png "Screenshot")
 
-<noscript><img src="http://luka.doublebuffer.net/q/ghub/piwik/piwik.php?idsite=1&rec=1" style="border:0;" alt="" /></noscript>
+[![githalytics.com alpha](https://cruel-carlota.pagodabox.com/5921d5e59d6e4218c3e9ebf8717255f2 "githalytics.com")](http://githalytics.com/luka-mikec/godellob-prover)
 
