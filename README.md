@@ -14,3 +14,6 @@ Windows: same as Unixoids, but might require downloading MinGW first (gcc for Wi
 [More info in Croatian language](https://github.com/luka-mikec/godellob-prover/wiki)
 
 ![Screenshot godellob-prover](/res/shot.png "Screenshot")
+
+<noscript><img src="https://luka.doublebuffer.net/q/ghub/piwik/piwik.php?idsite=1" style="border:0;" alt="" /></noscript>
+

@@ -1,5 +1,3 @@
-int formula_complexity = 0;
-
 #include "prover.h"
 using namespace std;
 
@@ -13,6 +11,7 @@ void rek_ispis(dummy_struct* r, string pref, bool l = true)
 bool show = true;
 bool modal_mode = false;
 int  modal_logic = 0;
+extern bool verbose;
 
 void konstr(wff* f, string ulaz)
 {
@@ -95,9 +94,13 @@ int main()
             else if (ulaz.substr(0, 4) == "exit") exit(0);
             else if (ulaz.substr(0, 4) == "show") {show = true; }
             else if (ulaz.substr(0, 4) == "hide") {show = false; }
+            else if (ulaz.substr(0, 4) == "verb") {verbose = !verbose; }
             else if (ulaz.substr(0, 4) == "inst") {cout << wff::deleted << "/" << wff::instantiated_new << '(' << wff::instantiated_copies << ')' << endl; }
             else if (ulaz.substr(0, 4) == "flat") {stringstream ss; ss << "=ab"; f->feed(ss); f->flatten();  }
-            else if (ulaz.substr(0, 4) == "auto") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> formula_complexity; int n; auto_prover("output2", formula_complexity, 2); }
+            else if (ulaz.substr(0, 4) == "auto") {stringstream ss; ss << ulaz; ss >> ulaz;
+                int formula_complexity, modal_depth, operator_diversity;
+                ss >> formula_complexity >> operator_diversity >> modal_depth;
+                auto_prover("output2", formula_complexity, operator_diversity, modal_depth); }
             else if (ulaz.substr(0, 4) == "setl") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> modal_logic;}
             else if (ulaz.substr(0, 4) == "view") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> wff::print_style; if (wff::print_style < 0 || wff::print_style > 2) wff::print_style = 0; }
             else konstr(f, ulaz);

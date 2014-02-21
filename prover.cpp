@@ -1,6 +1,7 @@
 #include "prover.h"
 
 wff* istina; // _|_ -> _|_, najjednostavnije za gen.
+bool verbose;
 
 float measure(wff* f, tree& s)
 {
@@ -58,19 +59,20 @@ bool equivalent_formulas(wff* f, wff* g, bool modally)
     return s3.closed_branch;
 }
 
-void auto_prover(string outputloc, int formula_complexity, int operator_diversity, int start_from)
+void auto_prover(string outputloc, int formula_complexity, int operator_diversity, int modal_depth, int start_from)
 {
-    ofstream baza(outputloc);
 
     vector<wff*> mfs;
+
      cout << endl << "> (1/3) Generating formulas 0%"; cout.flush();
      int max = formula_complexity + 1;
      for (int k = 1; k < max; ++k)
      {
-         generiraj_formule(mfs, k, operator_diversity);
+         generiraj_formule(mfs, k, operator_diversity, /*modalna dubina:*/ modal_depth);
          //mfs.insert(mfs.end(), res.begin(), res.end());
          cout << "\r> (1/3) Generating formulas " << (100 * k / (max - 1)) << "%"; cout.flush();
      }
+
      cout << "\r> (1/3) Generating formulas completed, size: " << mfs.size() << endl;
      cout << endl << "> ...";
 
@@ -90,12 +92,16 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
      {
          // output status to stdout
          wff* &item = mfs[c++];
+
+         if (!verbose)
+         {
          if (c % step == 0 || c == mfs.size())
              cout << "\r> (2/3) Building trees " << (100 * c / mfs.size())
                   << "% [" << c << "/" << mfs.size() << ", "
                   << (float)(clock() - timer) / CLOCKS_PER_SEC << "s spent"
                   << "]";
          cout.flush();
+         }
 
          //cout << endl << item << endl;
          // build negation of formula
@@ -107,6 +113,8 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
                                          item->deep_copy()));
          else  negacija= new wff(wff::neg, item->deep_copy());
 
+         if (verbose)
+            cout << "Checking: " << item << " ";
 
          // check validity
          tree precheck_tree, check_tree;
@@ -116,6 +124,10 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
             check_tree.modal_logic = tree::K;
             check_tree.build_for(negacija);
          }
+
+         if (verbose)
+            cout << "GL valid: " << precheck_tree.closed_branch
+                 << ", K valid: " << check_tree.closed_branch << endl;
 
          if (!check_tree.closed_branch && precheck_tree.closed_branch)
             valjane.push_back(item);
@@ -217,7 +229,7 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
      c = 0;
      if (!valjane.empty())
      {
-         cout << "\n\nFirst 100 valid and interesting: " << endl;
+         cout << "\n\nFirst 100 valid: " << endl;
          for (wff* item : valjane)
          {
              {
@@ -230,6 +242,8 @@ void auto_prover(string outputloc, int formula_complexity, int operator_diversit
      c = 0;
      if (!pruned.empty())
      {
+         ofstream baza(outputloc);
+
          cout << "\n\nFirst 100 valid and interesting: " << endl;
          for (wff* item : pruned)
          {

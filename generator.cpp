@@ -1,5 +1,5 @@
 #include "generator.h"
-
+#define VARIABLE_COUNT 3
 
 vector<dummy_struct*> kopiraj_skup_op(vector<dummy_struct*> &skup)
 {
@@ -158,7 +158,7 @@ void generiraj_formule(vector<wff*>& konacan_rezultat, int kompleksnost, int sku
 
     vector<dummy_struct*> trs_vars;
     vector<vector<dummy_struct*> > skupovi_varijabli;
-    generiraj_operatore(/*max kompleksnost + 2 // ovo sad je {_|_, p}*/ 2, kompleksnost + 1, 0, skupovi_varijabli, trs_vars); // kompl + 2 zbog _|_
+    generiraj_operatore(/*max kompleksnost + 2 // ovo sad je {_|_, p}*/ VARIABLE_COUNT, kompleksnost + 1, 0, skupovi_varijabli, trs_vars); // kompl + 2 zbog _|_
     vector<string> skupovi_varijabli_sredeno;
     string abeceda = ".0pqsrabcdefghijklmnotuvxyzw0123456789";
     for (auto skup : skupovi_varijabli)
@@ -252,15 +252,16 @@ void generiraj_formule(vector<wff*>& konacan_rezultat, int kompleksnost, int sku
             for (auto *pf : podformulice) // brzi prune
                 if (pf->type == wff::cond)
                 {
-                    if (pf->a->type ==wff::falsum)
+                    if (pf->a->type == wff::falsum && pf->b->type != wff::falsum)
                         dalje = false;
-                    if (pf->a->syntactically_equals(pf->b))
+                    if (pf->a->syntactically_equals(pf->b) &&
+                        !(pf->a->type == wff::falsum && pf->b->type == wff::falsum))
                         dalje = false;
                     if (!dalje) break;
                 }
                 else if (pf->binary())
                 {
-                    if ((pf->a->type == wff::falsum) != (pf->b->type == wff::falsum))
+                    if (pf->a->type == wff::falsum || pf->b->type == wff::falsum)
                         dalje = false;
                     if (pf->a->syntactically_equals(pf->b))
                         dalje = false;

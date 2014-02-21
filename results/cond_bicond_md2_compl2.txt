@@ -1,8 +1,8 @@
-T, L, D, N
-LT, DT
+4, L, D, N
+L4, D4
 
 □p → □□p
-T, Transitivity axiom (theorem within GL)
+4, Transitivity axiom (theorem within GL)
 
 □(□p → p) → □p
 L, Löb's theorem (axiom within GL)
@@ -19,7 +19,7 @@ L, Löb's theorem (axiom within GL)
 			□(□p ↔ □□p) ↔ □□p 
 
 □(□p → p) → □□p
-LT, by L & T
+L4, by L & 4
 
 □(□□p → p) → □p
 D
@@ -31,7 +31,7 @@ D
 		normal □(□□p ↔ p) ↔ □p
 
 □(□□p → p) → □□p
-DT, by D & T
+D4, by D & 4
 	normal □(□□p ↔ p) → □□p
 
 
