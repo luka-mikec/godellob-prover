@@ -15,5 +15,5 @@ Windows: same as Unixoids, but might require downloading MinGW first (gcc for Wi
 
 ![Screenshot godellob-prover](/res/shot.png "Screenshot")
 
-<noscript><img src="http://luka.doublebuffer.net/q/ghub/piwik/piwik.php?idsite=1;rec=1" style="border:0;" alt="" /></noscript>
+<noscript><img src="http://luka.doublebuffer.net/q/ghub/piwik/piwik.php?idsite=1&rec=1" style="border:0;" alt="" /></noscript>
 
