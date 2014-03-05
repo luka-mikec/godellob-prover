@@ -1,7 +1,7 @@
 godellob-prover
 ===============
 
-Automatic theorem prover for Gödel-Löb system. 
+Automated theorem prover for Gödel-Löb system. 
 
 Requires newer C++ compiler (godellob-prover is written in C++11 standard).
 
