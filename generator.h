@@ -47,6 +47,7 @@ struct dummy_struct
         else return false;
     }
 };
+void rek_ispis(dummy_struct* r, string pref, bool l = true);
 
 // efektivno generira sve particije multiskupa s card. = granauk, tipovaop različitih elemenata
 void generiraj_operatore(int tipovaop, int granauk, int trtip,
@@ -54,7 +55,7 @@ void generiraj_operatore(int tipovaop, int granauk, int trtip,
 
 void generiraj_strukture(vector<dummy_struct*> ugradeni, vector<dummy_struct*> preostali, vector <dummy_struct*> &strukture);
 
-void generiraj_formule(vector<wff*> &rez, int kompleksnost, int operatori, int mdb = 2);
+void generiraj_formule(vector<wff*> &rez, int kompleksnost, int operatori, int mdb, int VARIABLE_COUNT);
 
 
 

@@ -102,4 +102,77 @@ bool prop_normalno_ekvivalentne(wff *&f, wff *&g)
 
 
 
+
+
+
+
+     if (!pruned.empty())
+     for (auto item : pruned)
+     {
+         cout << "\r> (3/3) Determining interestigness " << (100 * c / valjane.size())
+              << "% [" << ++c << "/" << valjane.size() << ", "
+              << (float)(clock() - timer) / CLOCKS_PER_SEC << "s spent]";
+         cout.flush();
+
+         bool fail = false;
+
+         for (int k = 0; k < pruned.size(); ++k)
+         {
+             wff* item2 = pruned[k];
+
+             bool contained = implies_by_necesit(item, item2, &pruned);
+             if (contained) // then choose the smaller one
+             {
+                 vector<wff*>temp;
+                 item->collect_subwffs(temp);
+
+                 vector<wff*>temp2;
+                 item2->collect_subwffs(temp2);
+                 if (temp.size() > temp2.size())
+                     fail = true;
+                 else  if (temp.size() < temp2.size() || item->commutes_syntactically_equals(item2)) // LLL
+                 {
+                     if (item2->syntactically_equals(new wff(">B>BppBp")))
+                         cout << "a";
+                     pruned.erase(pruned.begin() + k--);
+                 }
+                 break;
+             }
+         }
+
+         if (!fail) // all checks ok, add
+         {
+             pruned.push_back(item);
+         }
+     }
+
+     if (!pruned.empty())
+     {
+         for (int i = 0; i < pruned.size(); ++i)
+         {
+             wff* item = pruned[i];
+             for (int k = 0; k < pruned.size(); ++k)
+             {
+                 if (i == k) continue;
+
+                 wff* item2 = pruned[k];
+
+                 bool brisati = implies_by_necesit(item2, item, &pruned, k);
+                 if (!brisati)
+                     brisati = implies(item, item2, false);
+
+                 if (brisati)
+                 {
+                     if (item2->syntactically_equals(new wff(">B>BppBp")))
+                         cout << "a";
+                     pruned.erase(pruned.begin() + k);
+                     k--;
+                     if (k < i) i--;
+                 }
+             }
+         }
+
+     }
+
+
   */

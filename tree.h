@@ -19,9 +19,10 @@ struct tree
 
     // metadata
     bool modal_mode = true;
-    enum {K, K4, GL} modal_logic = GL;
+    enum modal_logic_type {K, K4, GL} modal_logic = GL;
     bool closed_branch = false;
     int start_solving_from = 0;
+    bool k4_marked = false;
 
     // input/output
     friend ostream& operator<<(ostream& out, const tree &s);
@@ -32,7 +33,11 @@ struct tree
 
     // helpers
     void collect_subtrees(vector<wff*> &cres);
+    void collect_all_formulas(vector<wff* > &result);
     void collect_boxed_formulas(vector<wff* > &result, int lev, bool include_parents = true);
+    tree* modal_level_up();
+    bool k4_is_subset_of(tree* superset);
+    bool k4_check_loop();
 
     // logic things
     bool check_contradictions(wff *f, int raz);

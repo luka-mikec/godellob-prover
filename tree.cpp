@@ -57,6 +57,63 @@ bool tree::check_contradictions(wff *f, int raz /*= 0*/)
     return false;
 }
 
+void tree::collect_all_formulas(vector<wff* > &result)
+{
+    if (!formulas.empty())
+    for (auto gr : formulas)
+    {
+        if (std::none_of(full(result),
+                    [&gr](wff* ff) {
+                        return gr->syntactically_equals(ff);
+                    }
+        ))
+          result.push_back(gr);
+    }
+    if (mother != 0)
+        if (mother->modal_depth == modal_depth) // optim
+            mother->collect_all_formulas(result);
+}
+
+// return first parent tree whose modal_level begs to differ
+tree* tree::modal_level_up()
+{
+    if (mother != 0)
+        if (mother->modal_depth == modal_depth)
+            return mother->modal_level_up();
+        else
+            return mother;
+    else return 0;
+}
+
+bool tree::k4_is_subset_of(tree* superset)
+{
+    if (!superset) return false;
+
+    vector<wff* > subsetf, supersetf;
+    collect_all_formulas(subsetf);
+    superset->collect_all_formulas(supersetf);
+
+    bool okies = true;
+    return  all_of(full(subsetf),
+        [&supersetf](wff* gr){
+            return any_of(full(supersetf),
+               [&gr](wff* ff) {
+                    return gr->syntactically_equals(ff);
+               }
+            );
+        }
+    );
+}
+
+bool tree::k4_check_loop()
+{
+    tree* to_check = this;
+    while ((to_check = to_check->modal_level_up()) != 0)
+        if (k4_is_subset_of(to_check))
+            return true;
+    return false;
+}
+
 void tree::collect_boxed_formulas(vector<wff* > &result, int lev, bool include_parents)
 {
     if (!formulas.empty())
@@ -76,9 +133,14 @@ void tree::collect_boxed_formulas(vector<wff* > &result, int lev, bool include_p
             mother->collect_boxed_formulas(result, lev);
 }
 
+// solves formulas with propositional rules
 void tree::solve_formula(wff *f)
 {
     // formulu kod sebe sredimo samo ako nema djece
+    /* LLL mozda dodati && !closed_branch, za slucaj da su vec moje formule napravile kontr.
+     * tipa ako imam {A -> B,  #},
+     * prvo napravim stablo, a onda skuzim kontr
+     */
     if (trees.size()) {
         for (auto gr : trees)
             if (!gr->closed_branch)
@@ -105,6 +167,7 @@ void tree::solve_formula(wff *f)
                     push(b);
                     b->a = 0; delete b;
                 }
+                // negated prop, negated # are ru(th)leless
             }
             break;
 
@@ -124,7 +187,8 @@ void tree::solve_formula(wff *f)
     }
 }
 
-bool tree::open_window(wff* mf, vector<wff*> &boxed) // for modal logics
+// for modal logics, doesn't just open window but also solves it
+bool tree::open_window(wff* mf, vector<wff*> &boxed)
 {
     if (closed_branch) return true;
 
@@ -141,12 +205,17 @@ bool tree::open_window(wff* mf, vector<wff*> &boxed) // for modal logics
             {
                 auto &kop = boxed;
                 int len = kop.size();
+                // push additional boxed formulas...
                 s->collect_boxed_formulas(kop, modal_depth, false);
                 bool val = s->open_window(mf, kop);
                 sve_zat = sve_zat && val;
                 if (kop.size() != len)
                     kop.erase(kop.begin() + len, kop.end());
-                if (!sve_zat) break;
+                // ... and remove them afterwards for sister and mother brcs
+
+                // since open_window also solves the window:
+                // LLL possible buggy optimization:
+                // if (!sve_zat) break;
             }
         if (sve_zat)
             closed_branch = sve_zat;
@@ -186,6 +255,7 @@ bool tree::open_window(wff* mf, vector<wff*> &boxed) // for modal logics
     window->solve();
     if (window->closed_branch)
         closed_branch = true;
+
     return window->closed_branch;
 }
 
@@ -202,7 +272,7 @@ void tree::solve()
             sort(formulas.begin() + sorted_head, formulas.end(), [](wff *a, wff *b)
             {
                 if (a->type == b->type) return false;
-                if (a->type == wff::falsum) return true;
+                if (a->type == wff::falsum) return false;
                 if (b->type == wff::falsum) return false;
                 if (a->type == wff::cond) return false;
                 if (b->type == wff::cond) return true;
@@ -213,6 +283,8 @@ void tree::solve()
         solve_formula( formulas[i]);
         if (closed_branch) return;
     }
+
+
 
     bool svezat = !trees.empty();
     if (!trees.empty())
@@ -227,6 +299,10 @@ void tree::solve()
     if (!modal_mode) return;
     if (closed_branch) return;
 
+    if (mother != 0 && modal_logic == K4)
+        if (k4_check_loop())
+            k4_marked = true;
+
     vector<wff* > negations_of_box;
     for (auto i = formulas.begin(); i != formulas.end(); ++i)
         if ((*i)->type == wff::neg)
@@ -236,7 +312,7 @@ void tree::solve()
     vector<wff* > boxed_formulas;
     collect_boxed_formulas(boxed_formulas, modal_depth);
 
-    if (!negations_of_box.empty())
+    if (!negations_of_box.empty() && (modal_logic != K4 || !k4_marked))
     {
         bool allcl = true;
         for (auto *mf : negations_of_box)
@@ -263,7 +339,12 @@ string motherlevel(const tree &s)
     if (s.mother == 0)
         return "";
     else
-        return motherlevel(*s.mother) + "\t" + (s.mother->modal_depth != s.modal_depth ? "|" : "");
+        return motherlevel(*s.mother) + "\t" +
+                (s.mother->modal_depth != s.modal_depth ?
+                    (s.k4_marked ? "+" : "|")
+                        :
+                     ""
+                );
 }
 
 ostream& operator<<(ostream& out, const tree &s)

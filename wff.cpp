@@ -6,7 +6,7 @@
  */
 
 
-int wff::print_style = 0;
+int wff::print_style = 2;
 uintmax_t wff::instantiated_new, wff::deleted,
           wff::instantiated_copies;
 
@@ -39,6 +39,71 @@ void wff::flatten()
         a->flatten();
     if (type == cond)
         b->flatten();
+}
+
+void wff::beautify()
+{
+     // converting x -> y and x <-> y, where x or y = #
+
+    if (standard() && b->type == falsum)
+    {
+        delete b; b = 0;
+        type = neg;
+    }
+    if (type == bicond && a->type == falsum)
+    {
+        delete a; a = b; b = 0;
+        type = neg;
+    }
+    if (standard() && a->syntactically_equals(b))
+    {
+        delete a; delete b; a = b = 0;
+        type = prop;
+        p = 'T';
+    }
+
+
+    while (type == neg && a->type != prop)
+    {
+        if (a->type == neg)
+        {
+            *this = *(a->a);
+        }
+        if (a->type == falsum)
+        {
+            type = prop;
+            p = 'T';
+        }
+        if (a->type == box)
+        {
+            type = box;
+            actually_is_diamond = !actually_is_diamond;
+            a->type = neg;
+        }
+        if (a->type == cond)
+        {
+            type = wedge;
+            b = new wff(neg, a->b);
+            a = a->a;
+        }
+        if (a->type == bicond)
+        {
+            type = bicond;
+            b = new wff(neg, a->b);
+            a = new wff(neg, a->a);
+        }
+    }
+
+    if (type == cond && a->type == neg)
+    {
+        type = vee;
+        a = a->a;
+    }
+
+    if (operates()) // type is now one of these
+        a->beautify();
+    if (binary())
+        b->beautify();
 }
 
 void wff::feed(istream& mother)
@@ -80,6 +145,12 @@ void wff::feed(istream& mother)
     }
 }
 
+void wff::feed(string mother)
+{
+    stringstream ss(mother);
+    feed(ss);
+}
+
 bool wff::syntactically_equals(wff *f)
 {
    if (f->type != type) return false;
@@ -96,6 +167,54 @@ bool wff::syntactically_equals(wff *f)
                 break;
     }
     return true;
+}
+
+bool wff::commutes_syntactically_equals(wff *f)
+{
+    if (f->type != type) return false;
+
+    switch (type)
+    {
+    case falsum:     break;
+    case prop:     if (f->p != p) return false; break;
+    case box:      if (! a->commutes_syntactically_equals(f->a)) return false; break;
+    case neg:      if (! a->commutes_syntactically_equals(f->a)) return false; break;
+    case cond:
+        if (! a->commutes_syntactically_equals(f->a)) return false;
+        if (! b->commutes_syntactically_equals(f->b)) return false;
+        break;
+    case bicond:  case wedge: case vee:
+        if (! a->commutes_syntactically_equals(f->a) || ! b->commutes_syntactically_equals(f->b))
+            if (! a->commutes_syntactically_equals(f->b) || ! b->commutes_syntactically_equals(f->a))
+                return false;
+        break;
+    }
+    return true;
+}
+
+bool wff::is_a_subst_instance_of(wff *f, map<char, wff*>* changes)
+{
+    if (changes == 0)
+        changes = new map<char, wff*>();
+
+    if (f->type != prop)
+    {
+        if (type != f->type)
+            return false;
+        else
+        {
+            if (type == wff::falsum && f->type == wff::falsum)
+                return true;
+            if (unary()) return a->is_a_subst_instance_of(f->a, changes);
+            if (binary()) return a->is_a_subst_instance_of(f->a, changes)
+                    && b->is_a_subst_instance_of(f->b, changes);
+        }
+    }
+
+    if (changes->find(f->p) != changes->end())
+        return syntactically_equals(changes->at(f->p));
+    else
+        return (*changes)[f->p] = this;
 }
 
 string wff::get_prefix_rep()
@@ -144,6 +263,7 @@ wff *wff::deep_copy()
 {
     ++instantiated_copies;
     wff *res = new wff(type);
+    res->additional_data = additional_data;
     switch (type)
     {
     case falsum:     break;
@@ -206,22 +326,30 @@ void init_styles()
     else
         return;
 
-    map<string, string> s1, s2, s3;
+    map<string, string> s1, s2, s3, s4;
     s1["#"] = "#"; s1["B"] = "B"; s1["~"] = "~";
-    s1[">"] = ">"; s1["&"] = "&"; s1["|"] = "|"; s1["="] = "=";
+    s1[">"] = ">"; s1["&"] = "&"; s1["|"] = "|"; s1["="] = "="; s1["D"] = "C";
+    s1["T"] = "T";
 
     s2["#"] = "_|_"; s2["B"] = "[]"; s2["~"] = "~";
-    s2[">"] = "->"; s2["&"] = "&"; s2["|"] = "||"; s2["="] = "<->";
+    s2[">"] = "->"; s2["&"] = "&"; s2["|"] = "||"; s2["="] = "<->"; s1["D"] = "<>";
+    s2["T"] = "T";
 
     s3["#"] = "\u22A5"; s3["B"] = "\u25A1"; s3["~"] = "\u00AC";
-    s3[">"] = "\u2192"; s3["&"] = "\u2227"; s3["|"] = "\u2228"; s3["="] = "\u2194";
+    s3[">"] = "\u2192"; s3["&"] = "\u2227"; s3["|"] = "\u2228"; s3["="] = "\u2194"; s3["D"] = "\u25CA";
+    s3["T"] = "T";
+
+    s4["#"] = "\\bot"; s4["B"] = "\\square "; s4["~"] = "\\neg ";
+    s4[">"] = "\\to"; s4["&"] = "\\wedge"; s4["|"] = "\\vee"; s4["="] = "\\leftrightarrow"; s4["D"] = "\\Diamond ";
+    s4["T"] = "\\top";
 
     styles.push_back(s1);
     styles.push_back(s2);
     styles.push_back(s3);
+    styles.push_back(s4);
 
     for (map<string, string>& s : styles)
-        for (auto& par : s) if (par.first != "#" && par.first != "B" && par.first != "~")
+        for (auto& par : s) if (par.first != "#" && par.first != "B" && par.first != "~" && par.first != "D")
             par.second = " " + par.second + " ";
 }
 
@@ -249,9 +377,9 @@ ostream& operator<<(ostream& out, wff *f)
     case wff::falsum:
         out << styles[wff::print_style]["#"]; break;
     case wff::prop:
-        out << f->p; break;
+        out << (f->p == 'T' ? styles[wff::print_style]["T"] : string(1, f->p)); break;
     case wff::box:
-        out << styles[wff::print_style]["B"];
+        out << styles[wff::print_style][f->actually_is_diamond ? "D" : "B"];
         if (f->a) if (!f->a->binary()) out << f->a;
                   else out << "(" << f->a << ")";
         else   out << "<null>"; break;

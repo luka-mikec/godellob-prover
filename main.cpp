@@ -1,16 +1,11 @@
 #include "prover.h"
 using namespace std;
 
-void rek_ispis(dummy_struct* r, string pref, bool l = true)
-{
-    cout << pref << (l ? "L: " : "R: ") << r->data1 << endl;
-    if (r->l) rek_ispis(r->l, pref + "\t", true);
-    if (r->d) rek_ispis(r->d, pref + "\t", false);
-}
+
 
 bool show = true;
 bool modal_mode = false;
-int  modal_logic = 0;
+int  modal_logic = 1;
 extern bool verbose;
 
 void konstr(wff* f, string ulaz)
@@ -37,12 +32,26 @@ void konstr(wff* f, string ulaz)
 
 int main()
 {
+    /*
+    cout << (new wff("&Bpp"))->is_a_subst_instance_of(new wff("p")) << endl;
+    cout << (new wff("&B&qrp"))->is_a_subst_instance_of(new wff("&Bpp")) << endl;
+    cout << (new wff("&B&qr&qr"))->is_a_subst_instance_of(new wff("&Bpp")) << endl;
+    exit(0);
+    */
+
+    int bin_ops = 2;
+    int modal_depth = 2;
+    int var_cnt = 1 + 2;
+    bool subst = false;
+
+    auto_prover("sz"+scast<string>(bin_ops)+"_cond_bicond_md"+scast<string>(modal_depth)+"_vars"+scast<string>(var_cnt)+"_"+(subst ? "subst" : "norm"), bin_ops, 2, modal_depth, var_cnt, subst);
+
    istina = new wff;
    istina->type = wff::cond;
    istina->a = new wff;
    istina->b = new wff;
 
-   wff::print_style = 1; // use 2 if console supports unicode
+   //wff::print_style = 1; // use 2 if console supports unicode
 
     cout << "> use 'help' for introduction \n";
     while (1)
@@ -74,7 +83,7 @@ int main()
         if (ulaz.length() >= 4)
             if (ulaz.substr(0, 4) == "help")
             {
-                cout << "Use prefix notation, instead a > b, use > a b.\n\n" \
+                cout << "Use prefix notation, instead of a > b, use > a b.\n\n" \
                         "Available operators: # contradiction, ~ negation, B provable, \n" \
                         "& conjunction, > conditional, + disjunction, = biconditional. \n\n" \
                         "Everything else is a propositional letter.\n\n" \
@@ -85,9 +94,7 @@ int main()
                 ulaz = "=B=p~BpB=p~B#";
                 tmp2 << ulaz; tmp->feed(tmp2); cout << tmp << ", enter: " << ulaz << endl;
                 cout << endl << "Other commands:\nexit\nshow\toutput the tree - on\nhide\t"
-                     << "output the tree - off\nview n\t0 one-char primitive view, 1 default, 2 fancy unicode output\ninst\tsome memory usage statsn\n\n"
-                     << "To use autoprover, change the '0' in first line of main.cpp to "
-                     << "the number of operators you'd like your formulas to contain."
+                     << "output the tree - off\nview n\t0 one-char primitive view, 1 default, 2 fancy unicode output\ninst\tsome memory usage statsn\nauto\tform_size operator_diversity modal_depth var_diversity\n"
                         << "\n\nLuka Mikec 2013, luka.mikec1-at-gmail-dot-com\n\n";
                 delete tmp;
             }
@@ -98,9 +105,9 @@ int main()
             else if (ulaz.substr(0, 4) == "inst") {cout << wff::deleted << "/" << wff::instantiated_new << '(' << wff::instantiated_copies << ')' << endl; }
             else if (ulaz.substr(0, 4) == "flat") {stringstream ss; ss << "=ab"; f->feed(ss); f->flatten();  }
             else if (ulaz.substr(0, 4) == "auto") {stringstream ss; ss << ulaz; ss >> ulaz;
-                int formula_complexity, modal_depth, operator_diversity;
-                ss >> formula_complexity >> operator_diversity >> modal_depth;
-                auto_prover("output2", formula_complexity, operator_diversity, modal_depth); }
+                int formula_complexity, modal_depth, operator_diversity, VARIABLE_COUNT;
+                ss >> formula_complexity >> operator_diversity >> modal_depth >> VARIABLE_COUNT;
+                auto_prover("output2", formula_complexity, operator_diversity, modal_depth, VARIABLE_COUNT); }
             else if (ulaz.substr(0, 4) == "setl") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> modal_logic;}
             else if (ulaz.substr(0, 4) == "view") {stringstream ss; ss << ulaz; ss >> ulaz; ss >> wff::print_style; if (wff::print_style < 0 || wff::print_style > 2) wff::print_style = 0; }
             else konstr(f, ulaz);
@@ -114,3 +121,12 @@ int main()
     }
     return 0;
 }
+
+/*k thms
+dulji k-ekviv
+necesitacija
+distrib necesitacija
+# -> bilosto
+x -> x, osim za # -> #
+koje sadrze (x -> #) -> #
+# <-> x, x <-> #, x <-> x*/
